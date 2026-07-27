@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ClearanceLevel } from '../types';
+import { useLogin } from '../hooks/useLogin'; // Adjust path if necessary
 
 interface TerminalLoginModalProps {
   isOpen: boolean;
@@ -20,11 +21,20 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
   const [operatorName, setOperatorName] = useState('OPERATOR_01');
   const [accessKey, setAccessKey] = useState('••••••••••••');
 
+  // Initialize the TanStack Query hook
+  const { mutate: login, isPending, isError } = useLogin({
+    onSuccess: () => {
+      // Only close modal and update UI state if the backend returns success
+      onSetClearance(selectedLevel, operatorName);
+      onClose();
+    }
+  });
+
   if (!isOpen) return null;
 
   const handleSave = () => {
-    onSetClearance(selectedLevel, operatorName);
-    onClose();
+    // Fire the POST request using operatorName as email and accessKey as password
+    login({ email: operatorName, password: accessKey });
   };
 
   return (
@@ -39,27 +49,35 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
             <span className="material-symbols-outlined">terminal</span>
             <h3 className="font-bold text-base uppercase tracking-wider">TERMINAL_AUTHENTICATION</h3>
           </div>
-          <button onClick={onClose} className="text-[#849396] hover:text-[#00e5ff]">
+          <button onClick={onClose} className="text-[#849396] hover:text-[#00e5ff]" disabled={isPending}>
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
         <div className="space-y-4 text-xs">
+          {/* Error Message */}
+          {isError && (
+            <div className="bg-red-900/20 border border-red-500 text-red-500 p-2 text-center animate-pulse font-bold">
+              [!] ACCESS DENIED: INVALID CREDENTIALS
+            </div>
+          )}
+
           <div>
-            <label className="block text-[#849396] font-bold uppercase mb-1">Operator Designation</label>
+            <label className="block text-[#849396] font-bold uppercase mb-1">Operator Designation (Email)</label>
             <input
               type="text"
               value={operatorName}
               onChange={(e) => setOperatorName(e.target.value)}
-              className="w-full bg-[#122131] border border-[#3b494c] p-2 text-[#00e5ff] font-bold focus:border-[#00e5ff] focus:outline-none uppercase"
+              disabled={isPending}
+              className="w-full bg-[#122131] border border-[#3b494c] p-2 text-[#00e5ff] font-bold focus:border-[#00e5ff] focus:outline-none disabled:opacity-50"
             />
           </div>
 
           <div>
             <label className="block text-[#849396] font-bold uppercase mb-1">Select Security Clearance Level</label>
-            <div className="space-y-2">
+            <div className="space-y-2 disabled:opacity-50">
               <div
-                onClick={() => setSelectedLevel('L1_CIVILIAN')}
+                onClick={() => !isPending && setSelectedLevel('L1_CIVILIAN')}
                 className={`p-3 border cursor-pointer flex justify-between items-center ${
                   selectedLevel === 'L1_CIVILIAN'
                     ? 'border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff]'
@@ -74,7 +92,7 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
               </div>
 
               <div
-                onClick={() => setSelectedLevel('L2_COMMAND')}
+                onClick={() => !isPending && setSelectedLevel('L2_COMMAND')}
                 className={`p-3 border cursor-pointer flex justify-between items-center ${
                   selectedLevel === 'L2_COMMAND'
                     ? 'border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff]'
@@ -89,7 +107,7 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
               </div>
 
               <div
-                onClick={() => setSelectedLevel('L3_CLEARANCE')}
+                onClick={() => !isPending && setSelectedLevel('L3_CLEARANCE')}
                 className={`p-3 border cursor-pointer flex justify-between items-center ${
                   selectedLevel === 'L3_CLEARANCE'
                     ? 'border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff]'
@@ -106,27 +124,34 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-[#849396] font-bold uppercase mb-1">Passkey Hardware Hash</label>
+            <label className="block text-[#849396] font-bold uppercase mb-1">Passkey Hardware Hash (Password)</label>
             <input
               type="password"
               value={accessKey}
               onChange={(e) => setAccessKey(e.target.value)}
-              className="w-full bg-[#122131] border border-[#3b494c] p-2 text-[#d4e4fa] focus:border-[#00e5ff] focus:outline-none"
+              disabled={isPending}
+              className="w-full bg-[#122131] border border-[#3b494c] p-2 text-[#d4e4fa] focus:border-[#00e5ff] focus:outline-none disabled:opacity-50"
             />
           </div>
 
           <div className="pt-2 border-t border-[#3b494c] flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="border border-[#3b494c] px-4 py-2 text-[#849396] hover:text-[#d4e4fa]"
+              disabled={isPending}
+              className="border border-[#3b494c] px-4 py-2 text-[#849396] hover:text-[#d4e4fa] disabled:opacity-50"
             >
               CANCEL
             </button>
             <button
               onClick={handleSave}
-              className="bg-[#00e5ff] text-[#051424] font-bold px-6 py-2 uppercase hover:bg-[#00daf3]"
+              disabled={isPending}
+              className={`font-bold px-6 py-2 uppercase ${
+                isPending 
+                ? 'bg-[#3b494c] text-[#849396] cursor-not-allowed' 
+                : 'bg-[#00e5ff] text-[#051424] hover:bg-[#00daf3]'
+              }`}
             >
-              AUTHENTICATE
+              {isPending ? 'AUTHENTICATING...' : 'AUTHENTICATE'}
             </button>
           </div>
         </div>
