@@ -1,6 +1,6 @@
 export type TabType = 'DASHBOARD' | 'SEARCH' | 'FLEET' | 'BOOKINGS' | 'PROTOCOLS' | 'SYSTEM' | 'LOGS';
 
-export type ClearanceLevel = 'L1_CIVILIAN' | 'L2_COMMAND' | 'L3_CLEARANCE';
+export type ClearanceLevel = 'L1_CIVILIAN' | 'L2_COMMAND';
 
 export interface OperatorProfile {
   id: string;

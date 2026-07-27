@@ -4,8 +4,22 @@ import React, { useState } from 'react';
 import { useTerminal } from '../../context/TerminalContext';
 import { MissionBooking } from '../../types';
 
-export const BookingsView: React.FC = () => {
-  const { missions, setIsNewMissionOpen, handleUpdateMissionStatus } = useTerminal();
+interface BookingsViewProps {
+  missions?: MissionBooking[];
+  onOpenNewMission?: () => void;
+  onUpdateMissionStatus?: (id: string, status: MissionBooking['status']) => void;
+}
+
+export const BookingsView: React.FC<BookingsViewProps> = ({
+  missions: propsMissions,
+  onOpenNewMission,
+  onUpdateMissionStatus,
+}) => {
+  const { missions: contextMissions, setIsNewMissionOpen, handleUpdateMissionStatus } = useTerminal();
+  const missions = propsMissions || contextMissions;
+  const handleOpenNewMission = onOpenNewMission || (() => setIsNewMissionOpen(true));
+  const updateStatus = onUpdateMissionStatus || handleUpdateMissionStatus;
+
   const [filter, setFilter] = useState<string>('ALL');
   const [exportedMessage, setExportedMessage] = useState<string | null>(null);
 
@@ -51,7 +65,7 @@ export const BookingsView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setIsNewMissionOpen(true)}
+            onClick={handleOpenNewMission}
             className="bg-[#00e5ff] text-[#051424] font-bold px-4 py-2 text-xs uppercase hover:bg-[#00daf3] flex items-center gap-2 cursor-pointer"
           >
             <span className="material-symbols-outlined text-sm">add_task</span>
@@ -150,7 +164,7 @@ export const BookingsView: React.FC = () => {
                 <div className="flex gap-2">
                   {mission.status !== 'EN_ROUTE' && (
                     <button
-                      onClick={() => handleUpdateMissionStatus(mission.id, 'EN_ROUTE')}
+                      onClick={() => updateStatus(mission.id, 'EN_ROUTE')}
                       className="border border-[#00e5ff] text-[#00e5ff] px-3 py-1 hover:bg-[#00e5ff] hover:text-[#051424] font-bold text-[10px] uppercase cursor-pointer"
                     >
                       MARK EN ROUTE
@@ -158,7 +172,7 @@ export const BookingsView: React.FC = () => {
                   )}
                   {mission.status !== 'COMPLETED' && (
                     <button
-                      onClick={() => handleUpdateMissionStatus(mission.id, 'COMPLETED')}
+                      onClick={() => updateStatus(mission.id, 'COMPLETED')}
                       className="border border-emerald-400 text-emerald-400 px-3 py-1 hover:bg-emerald-400 hover:text-[#051424] font-bold text-[10px] uppercase cursor-pointer"
                     >
                       MARK COMPLETED

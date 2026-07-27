@@ -2,9 +2,15 @@
 
 import React, { useState } from 'react';
 import { useTerminal } from '../../context/TerminalContext';
+import { SystemMetrics } from '../../types';
 
-export const SystemView: React.FC = () => {
-  const { metrics } = useTerminal();
+interface SystemViewProps {
+  metrics?: SystemMetrics;
+}
+
+export const SystemView: React.FC<SystemViewProps> = ({ metrics: propsMetrics }) => {
+  const { metrics: contextMetrics } = useTerminal();
+  const metrics = propsMetrics || contextMetrics;
   const [inputVal, setInputVal] = useState('');
   const [history, setHistory] = useState<string[]>([
     'AEROLOCK CORE SYSTEM SHELL V4.8.2 [x86_64-aerolock-linux]',

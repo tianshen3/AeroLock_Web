@@ -185,7 +185,7 @@ export const INITIAL_FLIGHTS: FlightVector[] = [
     speed: 'MACH 3.2',
     status: 'BOARDING',
     encryption: 'AES-256-GCM',
-    clearanceRequired: 'L3_CLEARANCE',
+    clearanceRequired: 'L2_COMMAND',
   },
   {
     id: 'AL-331',
@@ -203,7 +203,7 @@ export const INITIAL_FLIGHTS: FlightVector[] = [
     speed: 'MACH 4.5',
     status: 'SCHEDULED',
     encryption: 'ECC_BRAINPOOL_P512',
-    clearanceRequired: 'L3_CLEARANCE',
+    clearanceRequired: 'L2_COMMAND',
   },
   {
     id: 'AL-702',

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ClearanceLevel } from '../types';
-import { useLogin } from '../hooks/useLogin'; // Adjust path if necessary
+import { useLogin } from '../hooks/useLogin';
 
 interface TerminalLoginModalProps {
   isOpen: boolean;
@@ -17,24 +17,35 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
   currentLevel,
   onSetClearance,
 }) => {
-  const [selectedLevel, setSelectedLevel] = useState<ClearanceLevel>(currentLevel);
-  const [operatorName, setOperatorName] = useState('OPERATOR_01');
-  const [accessKey, setAccessKey] = useState('••••••••••••');
+  const [email, setEmail] = useState('operator@aerolock.com');
+  const [password, setPassword] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState<ClearanceLevel>(
+    currentLevel === 'L1_CIVILIAN' ? 'L1_CIVILIAN' : 'L2_COMMAND'
+  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Initialize the TanStack Query hook
-  const { mutate: login, isPending, isError } = useLogin({
+  const loginMutation = useLogin({
     onSuccess: () => {
-      // Only close modal and update UI state if the backend returns success
-      onSetClearance(selectedLevel, operatorName);
+      const name = email.split('@')[0] || 'OPERATOR';
+      onSetClearance(selectedLevel, name);
+      setErrorMessage(null);
       onClose();
-    }
+    },
+    onError: (err) => {
+      setErrorMessage(err.message || 'API login failed. Please check backend connection.');
+    },
   });
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
-    // Fire the POST request using operatorName as email and accessKey as password
-    login({ email: operatorName, password: accessKey });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setErrorMessage('Email and password are required.');
+      return;
+    }
+    setErrorMessage(null);
+    loginMutation.mutate({ email, password });
   };
 
   return (
@@ -49,35 +60,35 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
             <span className="material-symbols-outlined">terminal</span>
             <h3 className="font-bold text-base uppercase tracking-wider">TERMINAL_AUTHENTICATION</h3>
           </div>
-          <button onClick={onClose} className="text-[#849396] hover:text-[#00e5ff]" disabled={isPending}>
+          <button type="button" onClick={onClose} className="text-[#849396] hover:text-[#00e5ff]">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <div className="space-y-4 text-xs">
-          {/* Error Message */}
-          {isError && (
-            <div className="bg-red-900/20 border border-red-500 text-red-500 p-2 text-center animate-pulse font-bold">
-              [!] ACCESS DENIED: INVALID CREDENTIALS
-            </div>
-          )}
+        {errorMessage && (
+          <div className="p-2 border border-red-500 bg-red-950/40 text-red-400 text-xs font-mono">
+            ⚠ {errorMessage}
+          </div>
+        )}
 
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block text-[#849396] font-bold uppercase mb-1">Operator Designation (Email)</label>
+            <label className="block text-[#849396] font-bold uppercase mb-1">Operator Designation</label>
             <input
-              type="text"
-              value={operatorName}
-              onChange={(e) => setOperatorName(e.target.value)}
-              disabled={isPending}
-              className="w-full bg-[#122131] border border-[#3b494c] p-2 text-[#00e5ff] font-bold focus:border-[#00e5ff] focus:outline-none disabled:opacity-50"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="operator@aerolock.com"
+              required
+              className="w-full bg-[#122131] border border-[#3b494c] p-2 text-[#00e5ff] font-bold focus:border-[#00e5ff] focus:outline-none"
             />
           </div>
 
           <div>
             <label className="block text-[#849396] font-bold uppercase mb-1">Select Security Clearance Level</label>
-            <div className="space-y-2 disabled:opacity-50">
+            <div className="space-y-2">
               <div
-                onClick={() => !isPending && setSelectedLevel('L1_CIVILIAN')}
+                onClick={() => setSelectedLevel('L1_CIVILIAN')}
                 className={`p-3 border cursor-pointer flex justify-between items-center ${
                   selectedLevel === 'L1_CIVILIAN'
                     ? 'border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff]'
@@ -85,14 +96,14 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
                 }`}
               >
                 <div>
-                  <div className="font-bold">L1_CIVILIAN</div>
+                  <div className="font-bold">L1_CIVILIAN (Standard User)</div>
                   <div className="text-[10px] text-[#849396]">Read-only public logistics & schedule telemetry</div>
                 </div>
                 {selectedLevel === 'L1_CIVILIAN' && <span className="material-symbols-outlined">check_circle</span>}
               </div>
 
               <div
-                onClick={() => !isPending && setSelectedLevel('L2_COMMAND')}
+                onClick={() => setSelectedLevel('L2_COMMAND')}
                 className={`p-3 border cursor-pointer flex justify-between items-center ${
                   selectedLevel === 'L2_COMMAND'
                     ? 'border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff]'
@@ -100,62 +111,46 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
                 }`}
               >
                 <div>
-                  <div className="font-bold">L2_COMMAND</div>
-                  <div className="text-[10px] text-[#849396]">Flight vector routing & cargo booking clearance</div>
+                  <div className="font-bold">L2_COMMAND (Admin)</div>
+                  <div className="text-[10px] text-[#849396]">Flight vector routing, stealth fleet & cargo clearance</div>
                 </div>
                 {selectedLevel === 'L2_COMMAND' && <span className="material-symbols-outlined">check_circle</span>}
-              </div>
-
-              <div
-                onClick={() => !isPending && setSelectedLevel('L3_CLEARANCE')}
-                className={`p-3 border cursor-pointer flex justify-between items-center ${
-                  selectedLevel === 'L3_CLEARANCE'
-                    ? 'border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff]'
-                    : 'border-[#3b494c] bg-[#122131] text-[#bac9cc]'
-                }`}
-              >
-                <div>
-                  <div className="font-bold">L3_CLEARANCE (OPERATOR_01)</div>
-                  <div className="text-[10px] text-[#849396]">Full tactical override, stealth fleet & encrypted keys</div>
-                </div>
-                {selectedLevel === 'L3_CLEARANCE' && <span className="material-symbols-outlined">check_circle</span>}
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-[#849396] font-bold uppercase mb-1">Passkey Hardware Hash (Password)</label>
+            <label className="block text-[#849396] font-bold uppercase mb-1">Passkey Hardware Hash</label>
             <input
               type="password"
-              value={accessKey}
-              onChange={(e) => setAccessKey(e.target.value)}
-              disabled={isPending}
-              className="w-full bg-[#122131] border border-[#3b494c] p-2 text-[#d4e4fa] focus:border-[#00e5ff] focus:outline-none disabled:opacity-50"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••••••"
+              required
+              className="w-full bg-[#122131] border border-[#3b494c] p-2 text-[#d4e4fa] focus:border-[#00e5ff] focus:outline-none"
             />
           </div>
 
           <div className="pt-2 border-t border-[#3b494c] flex justify-end gap-3">
             <button
+              type="button"
               onClick={onClose}
-              disabled={isPending}
-              className="border border-[#3b494c] px-4 py-2 text-[#849396] hover:text-[#d4e4fa] disabled:opacity-50"
+              className="border border-[#3b494c] px-4 py-2 text-[#849396] hover:text-[#d4e4fa]"
             >
               CANCEL
             </button>
             <button
-              onClick={handleSave}
-              disabled={isPending}
-              className={`font-bold px-6 py-2 uppercase ${
-                isPending 
-                ? 'bg-[#3b494c] text-[#849396] cursor-not-allowed' 
-                : 'bg-[#00e5ff] text-[#051424] hover:bg-[#00daf3]'
-              }`}
+              type="submit"
+              disabled={loginMutation.isPending}
+              className="bg-[#00e5ff] text-[#051424] font-bold px-6 py-2 uppercase hover:bg-[#00daf3] disabled:opacity-50"
             >
-              {isPending ? 'AUTHENTICATING...' : 'AUTHENTICATE'}
+              {loginMutation.isPending ? 'AUTHENTICATING...' : 'AUTHENTICATE'}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
 };
+
+

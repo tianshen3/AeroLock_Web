@@ -2,16 +2,32 @@
 
 import React, { useState } from 'react';
 import { useTerminal } from '../../context/TerminalContext';
-import { FlightVector } from '../../types';
+import { FlightVector, ClearanceLevel } from '../../types';
 
-export const SearchView: React.FC = () => {
-  const { flights, operator, handleBookFlight } = useTerminal();
-  const [originFilter, setOriginFilter] = useState('');
-  const [destFilter, setDestFilter] = useState('');
+interface SearchViewProps {
+  flights?: FlightVector[];
+  userClearance?: ClearanceLevel;
+  initialQuery?: { origin: string; destination: string; date: string; pax: number };
+  onBookFlight?: (flight: FlightVector) => void;
+}
+
+export const SearchView: React.FC<SearchViewProps> = ({
+  flights,
+  userClearance,
+  initialQuery,
+  onBookFlight,
+}) => {
+  const { flights: contextFlights, operator, handleBookFlight } = useTerminal();
+  const availableFlights = flights || contextFlights;
+  const currentClearance = userClearance || operator.clearance;
+  const bookFlight = onBookFlight || handleBookFlight;
+
+  const [originFilter, setOriginFilter] = useState(initialQuery?.origin || '');
+  const [destFilter, setDestFilter] = useState(initialQuery?.destination || '');
   const [clearanceFilter, setClearanceFilter] = useState<string>('ALL');
   const [bookedSuccessId, setBookedSuccessId] = useState<string | null>(null);
 
-  const filteredFlights = flights.filter((flight) => {
+  const filteredFlights = availableFlights.filter((flight) => {
     const matchesOrigin = !originFilter || flight.origin.toLowerCase().includes(originFilter.toLowerCase()) || flight.originCode.toLowerCase().includes(originFilter.toLowerCase());
     const matchesDest = !destFilter || flight.destination.toLowerCase().includes(destFilter.toLowerCase()) || flight.destinationCode.toLowerCase().includes(destFilter.toLowerCase());
     const matchesClearance = clearanceFilter === 'ALL' || flight.clearanceRequired === clearanceFilter;
@@ -19,7 +35,7 @@ export const SearchView: React.FC = () => {
   });
 
   const handleBook = (flight: FlightVector) => {
-    handleBookFlight(flight);
+    bookFlight(flight);
     setBookedSuccessId(flight.id);
     setTimeout(() => setBookedSuccessId(null), 4000);
   };
@@ -40,7 +56,7 @@ export const SearchView: React.FC = () => {
 
         <div className="flex items-center gap-2 text-xs bg-[#122131] border border-[#3b494c] p-2">
           <span className="text-[#849396]">YOUR CLEARANCE:</span>
-          <span className="text-[#00e5ff] font-bold">{operator.clearance}</span>
+          <span className="text-[#00e5ff] font-bold">{currentClearance}</span>
         </div>
       </div>
 
@@ -76,9 +92,8 @@ export const SearchView: React.FC = () => {
             className="w-full bg-[#122131] border border-[#3b494c] p-2 text-[#00e5ff] font-bold focus:border-[#00e5ff] focus:outline-none"
           >
             <option value="ALL">ALL CLEARANCE LEVELS</option>
-            <option value="L1_CIVILIAN">L1_CIVILIAN ONLY</option>
-            <option value="L2_COMMAND">L2_COMMAND</option>
-            <option value="L3_CLEARANCE">L3_CLEARANCE OVERRIDE</option>
+            <option value="L1_CIVILIAN">L1_CIVILIAN (USER)</option>
+            <option value="L2_COMMAND">L2_COMMAND (ADMIN)</option>
           </select>
         </div>
       </div>

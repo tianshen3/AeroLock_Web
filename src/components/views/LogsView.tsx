@@ -4,8 +4,16 @@ import React, { useState, useEffect } from 'react';
 import { useTerminal } from '../../context/TerminalContext';
 import { SystemLog } from '../../types';
 
-export const LogsView: React.FC = () => {
-  const { logs, handleAddLog } = useTerminal();
+interface LogsViewProps {
+  logs?: SystemLog[];
+  onAddLog?: (newLog: SystemLog) => void;
+}
+
+export const LogsView: React.FC<LogsViewProps> = ({ logs: propsLogs, onAddLog }) => {
+  const { logs: contextLogs, handleAddLog } = useTerminal();
+  const logs = propsLogs || contextLogs;
+  const postLog = onAddLog || handleAddLog;
+
   const [filterCategory, setFilterCategory] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [isAutoStreaming, setIsAutoStreaming] = useState(true);
@@ -36,11 +44,11 @@ export const LogsView: React.FC = () => {
         category: categories[Math.floor(Math.random() * categories.length)],
       };
 
-      handleAddLog(newLog);
+      postLog(newLog);
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [isAutoStreaming, handleAddLog]);
+  }, [isAutoStreaming, postLog]);
 
   const filteredLogs = logs.filter((log) => {
     const matchesCat = filterCategory === 'ALL' || log.category === filterCategory;
@@ -62,7 +70,7 @@ export const LogsView: React.FC = () => {
       status: 'OK',
       category: 'SECURITY',
     };
-    handleAddLog(newLog);
+    postLog(newLog);
     setCustomMsg('');
   };
 

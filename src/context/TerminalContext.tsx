@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import {
+  TabType,
   ClearanceLevel,
   OperatorProfile,
   FlightVector,
@@ -19,6 +20,8 @@ import {
 } from '../data/mockData';
 
 interface TerminalContextType {
+  activeTab: TabType;
+  setActiveTab: (tab: TabType) => void;
   metrics: SystemMetrics;
   logs: SystemLog[];
   fleet: FleetUnit[];
@@ -39,6 +42,7 @@ interface TerminalContextType {
   handleCreateMission: (missionData: Omit<MissionBooking, 'id' | 'timestamp' | 'status'>) => void;
   handleUpdateMissionStatus: (id: string, status: MissionBooking['status']) => void;
   handleUpdateUnitStatus: (unitId: string, newStatus: FleetUnit['status']) => void;
+  handleUpdateFleetStatus: (unitId: string, newStatus: FleetUnit['status']) => void;
   handleAddLog: (newLog: SystemLog) => void;
   handleSetClearance: (level: ClearanceLevel, name: string) => void;
 }
@@ -46,6 +50,7 @@ interface TerminalContextType {
 const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
 
 export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activeTab, setActiveTab] = useState<TabType>('DASHBOARD');
   const [metrics] = useState<SystemMetrics>(INITIAL_METRICS);
   const [logs, setLogs] = useState<SystemLog[]>(INITIAL_LOGS);
   const [fleet, setFleet] = useState<FleetUnit[]>(INITIAL_FLEET);
@@ -55,7 +60,7 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [operator, setOperator] = useState<OperatorProfile>({
     id: 'op-01',
     name: 'OPERATOR_01',
-    clearance: 'L3_CLEARANCE',
+    clearance: 'L2_COMMAND',
     avatar: '',
     nodeLocation: 'NORWAY_SECTOR_07',
     sessionTime: 12840,
@@ -75,6 +80,7 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const handleInitiateSearch = (params: { origin: string; destination: string; date: string; pax: number }) => {
     setSearchQuery(params);
+    setActiveTab('SEARCH');
   };
 
   const handleBookFlight = (flight: FlightVector) => {
@@ -86,7 +92,7 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       departureDate: flight.departureTime.split(' ')[0],
       pax: searchQuery.pax || 1,
       cargoType: 'RESERVED_PASSENGER_PAYLOAD',
-      priority: flight.clearanceRequired === 'L3_CLEARANCE' ? 'CRITICAL_ALPHA' : 'TACTICAL',
+      priority: flight.clearanceRequired === 'L2_COMMAND' ? 'CRITICAL_ALPHA' : 'TACTICAL',
       status: 'DISPATCHED',
       encryptionKey: flight.encryption,
       assignedUnit: 'UNIT_X_99',
@@ -145,6 +151,8 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   return (
     <TerminalContext.Provider
       value={{
+        activeTab,
+        setActiveTab,
         metrics,
         logs,
         fleet,
@@ -165,6 +173,7 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         handleCreateMission,
         handleUpdateMissionStatus,
         handleUpdateUnitStatus,
+        handleUpdateFleetStatus: handleUpdateUnitStatus,
         handleAddLog,
         handleSetClearance,
       }}

@@ -2,9 +2,20 @@
 
 import React, { useState } from 'react';
 import { useTerminal } from '../../context/TerminalContext';
+import { FleetUnit } from '../../types';
 
-export const FleetView: React.FC = () => {
-  const { fleet, setSelectedUnit } = useTerminal();
+interface FleetViewProps {
+  fleet?: FleetUnit[];
+  onSelectUnit?: (unit: FleetUnit) => void;
+}
+
+export const FleetView: React.FC<FleetViewProps> = ({
+  fleet: propsFleet,
+  onSelectUnit,
+}) => {
+  const { fleet: contextFleet, setSelectedUnit } = useTerminal();
+  const fleet = propsFleet || contextFleet;
+  const selectUnit = onSelectUnit || setSelectedUnit;
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
   const filteredFleet = fleet.filter((unit) => {
@@ -49,7 +60,7 @@ export const FleetView: React.FC = () => {
         {filteredFleet.map((unit) => (
           <div
             key={unit.id}
-            onClick={() => setSelectedUnit(unit)}
+            onClick={() => selectUnit(unit)}
             className="bg-[#0d1c2d] border border-[#3b494c] p-0 overflow-hidden hover:border-[#00e5ff] transition-all group cursor-pointer relative"
           >
             {/* Image Banner */}
@@ -120,7 +131,7 @@ export const FleetView: React.FC = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelectedUnit(unit);
+                    selectUnit(unit);
                   }}
                   className="border border-[#00e5ff] text-[#00e5ff] px-4 py-2 font-bold text-xs uppercase hover:bg-[#00e5ff] hover:text-[#051424] transition-none flex items-center gap-1 cursor-pointer"
                 >
