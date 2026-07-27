@@ -1,6 +1,6 @@
 import React from 'react';
-import '../src/index.css';
-import { TerminalProvider } from '../src/context/TerminalContext';
+import './globals.css';
+import Providers from '@/src/components/Providers';
 import { Header } from '../src/components/Header';
 import { Sidebar } from '../src/components/Sidebar';
 import { Footer } from '../src/components/Footer';
@@ -31,7 +31,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[#051424] text-[#d4e4fa] antialiased selection:bg-[#00e5ff] selection:text-[#051424]">
-        <TerminalProvider>
+        <Providers>
           <div className="min-h-screen flex flex-col bg-[#051424] text-[#d4e4fa] selection:bg-[#00e5ff] selection:text-[#051424]">
             <Header />
             <div className="flex flex-1 overflow-hidden">
@@ -43,7 +43,7 @@ export default function RootLayout({
             <Footer />
             <GlobalModals />
           </div>
-        </TerminalProvider>
+        </Providers>
       </body>
     </html>
   );
