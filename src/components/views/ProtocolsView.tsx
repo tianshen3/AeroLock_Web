@@ -1,15 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useTerminal } from '../../context/TerminalContext';
 import { SystemMetrics } from '../../types';
 
 interface ProtocolsViewProps {
   metrics?: SystemMetrics;
 }
 
-export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ metrics: propsMetrics }) => {
-  const { metrics: contextMetrics } = useTerminal();
+export const ProtocolsView: React.FC<ProtocolsViewProps> = () => {
   const [activeEncryption, setActiveEncryption] = useState('AES-256-GCM');
   const [pinging, setPinging] = useState(false);
   const [pingResults, setPingResults] = useState<{ node: string; latency: number; status: string }[]>([

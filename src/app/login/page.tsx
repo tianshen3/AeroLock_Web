@@ -3,21 +3,7 @@
 import React, { useState } from 'react';
 import { useLogin } from '../../hooks/useLogin';
 
-// Custom router hook for environment compatibility
-const useRouter = () => {
-  return {
-    push: (path: string) => {
-      if (typeof window !== 'undefined') {
-        window.location.href = path;
-      }
-    },
-    replace: (path: string) => {
-      if (typeof window !== 'undefined') {
-        window.location.href = path;
-      }
-    },
-  };
-};
+import { useRouter } from 'next/navigation';
 
 export type ClearanceTier = 'L1_CIVILIAN' | 'L2_COMMAND';
 
