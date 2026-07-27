@@ -1,10 +1,6 @@
 import React from 'react';
 import './globals.css';
-import Providers from '@/src/components/Providers';
-import { Header } from '../src/components/Header';
-import { Sidebar } from '../src/components/Sidebar';
-import { Footer } from '../src/components/Footer';
-import { GlobalModals } from '../src/components/GlobalModals';
+import AppShell from '../src/components/AppShell';
 
 export const metadata = {
   title: 'AEROLOCK | Flight Terminal',
@@ -31,19 +27,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[#051424] text-[#d4e4fa] antialiased selection:bg-[#00e5ff] selection:text-[#051424]">
-        <Providers>
-          <div className="min-h-screen flex flex-col bg-[#051424] text-[#d4e4fa] selection:bg-[#00e5ff] selection:text-[#051424]">
-            <Header />
-            <div className="flex flex-1 overflow-hidden">
-              <Sidebar />
-              <main className="flex-1 overflow-y-auto bg-[#051424]">
-                {children}
-              </main>
-            </div>
-            <Footer />
-            <GlobalModals />
-          </div>
-        </Providers>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

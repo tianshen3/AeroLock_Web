@@ -1,3 +1,4 @@
+'use client';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -50,20 +51,33 @@ export default function App() {
     handleSetClearance,
   } = useTerminal();
 
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+
   return (
     <div className="min-h-screen bg-[#051424] text-[#d4e4fa] font-mono selection:bg-[#00e5ff] selection:text-[#051424] flex flex-col relative">
       {/* Top Header */}
-      <Header />
+      <Header
+        isSidebarOpen={isSidebarOpen}
+        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+      />
 
       {/* Main Container with Sidebar */}
       <div className="flex-1 flex">
         {/* Sidebar Shell */}
-        <Sidebar />
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
 
         {/* Main Content Area */}
-        <main className="lg:ml-64 flex-1 flex flex-col min-h-screen relative overflow-x-hidden">
+        <main
+          className={`flex-1 flex flex-col min-h-screen relative overflow-x-hidden pt-16 transition-all duration-300 ${
+            isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
+          }`}
+        >
           {/* Active Tab Views */}
           <div className="flex-1">
+
             {activeTab === 'DASHBOARD' && (
               <>
                 <HeroSection />
