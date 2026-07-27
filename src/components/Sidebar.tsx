@@ -1,4 +1,5 @@
 'use client';
+
 import React from 'react';
 import { useTerminal } from '../context/TerminalContext';
 import { TabType } from '../types';
@@ -43,10 +44,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
       {/* Sidebar Container (Collapsible for Desktop & Mobile) */}
       <aside
-        className="fixed left-0 top-0 bottom-0 z-50 bg-[#122131] text-[#00e5ff] font-mono text-xs uppercase border-r border-[#3b494c] w-64 pt-20 select-none transition-transform duration-300 flex flex-col"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(-100%)' }}
+        className={`fixed left-0 top-0 bottom-0 z-50 bg-[#122131] text-[#00e5ff] font-mono text-xs uppercase border-r border-[#3b494c] w-64 pt-20 select-none transition-transform duration-300 flex flex-col ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
-        {/* Operator Info */}
+        {/* Operator Info Header with Unconditional Close Button */}
         <div className="px-6 mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#3b494c] border border-[#00e5ff] flex items-center justify-center shrink-0">
@@ -113,4 +116,3 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
     </>
   );
 };
-

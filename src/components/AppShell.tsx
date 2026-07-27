@@ -7,32 +7,46 @@ import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
 import { GlobalModals } from './GlobalModals';
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export interface AppShellProps {
+  children: React.ReactNode;
+}
+
+export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <Providers>
-      <div className="min-h-screen flex flex-col bg-[#051424] text-[#d4e4fa] selection:bg-[#00e5ff] selection:text-[#051424]">
+      <div className="min-h-screen bg-[#051424] text-[#d4e4fa] font-mono selection:bg-[#00e5ff] selection:text-[#051424] flex flex-col relative">
+        {/* Header with hamburger toggle */}
         <Header
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         />
-        <div className="flex flex-1 overflow-hidden">
+
+        {/* Main layout container */}
+        <div className="flex-1 flex">
+          {/* Collapsible Sidebar */}
           <Sidebar
             isOpen={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
           />
+
+          {/* Dynamic Content Wrapper */}
           <main
-            className={`flex-1 overflow-y-auto bg-[#051424] transition-all duration-300 ${
+            className={`flex-1 flex flex-col min-h-screen relative overflow-x-hidden pt-16 transition-all duration-300 ${
               isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
             }`}
           >
-            {children}
+            <div className="flex-1">{children}</div>
+            <Footer />
           </main>
         </div>
-        <Footer />
+
+        {/* Global Modals */}
         <GlobalModals />
       </div>
     </Providers>
   );
-}
+};
+
+export default AppShell;

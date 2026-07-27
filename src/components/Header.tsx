@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState, useEffect } from 'react';
 import { useTerminal } from '../context/TerminalContext';
 
@@ -33,12 +34,10 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onToggleSidebar }
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="text-[#00e5ff] hover:text-[#d4e4fa] cursor-pointer p-1 transition-colors bg-transparent border-none flex items-center justify-center"
+          className="material-symbols-outlined text-[#00e5ff] hover:text-[#d4e4fa] cursor-pointer p-1 transition-colors bg-transparent border-none flex items-center justify-center"
           title={isSidebarOpen ? 'Collapse Navigation' : 'Expand Navigation'}
         >
-          <span className="material-symbols-outlined text-lg">
-            {isSidebarOpen ? 'menu_open' : 'menu'}
-          </span>
+          {isSidebarOpen ? 'menu_open' : 'menu'}
         </button>
 
         <button
@@ -69,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onToggleSidebar }
 
         <button
           onClick={() => setIsLoginOpen(true)}
-          className="ml-2 border border-[#00e5ff] px-3 py-1 text-[#00e5ff] font-bold text-xs hover:bg-[#00e5ff] hover:text-[#051424] active:bg-[#00e5ff] transition-none flex items-center gap-1.5 cursor-pointer bg-transparent"
+          className="ml-2 border border-[#00e5ff] px-3 py-1 text-[#00e5ff] font-bold text-xs hover:bg-[#00e5ff] hover:text-[#051424] active:bg-[#00e5ff] transition-none flex items-center gap-1.5 cursor-pointer"
         >
           <span className="material-symbols-outlined text-sm">lock</span>
           <span>{operator.clearance.replace('_', ' ')}</span>

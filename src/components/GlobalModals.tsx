@@ -20,7 +20,7 @@ export const GlobalModals: React.FC = () => {
     operator,
     handleSetClearance,
     handleCreateMission,
-    handleUpdateUnitStatus,
+    handleUpdateFleetStatus,
   } = useTerminal();
 
   return (
@@ -46,7 +46,7 @@ export const GlobalModals: React.FC = () => {
       <FleetDetailModal
         unit={selectedUnit}
         onClose={() => setSelectedUnit(null)}
-        onUpdateStatus={handleUpdateUnitStatus}
+        onUpdateStatus={handleUpdateFleetStatus}
       />
     </>
   );
