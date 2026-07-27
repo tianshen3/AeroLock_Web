@@ -24,12 +24,36 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const loginMutation = useLogin({
-    onSuccess: () => {
-      const name = email.split('@')[0] || 'OPERATOR';
-      onSetClearance(selectedLevel, name);
-      setErrorMessage(null);
-      onClose();
+ const loginMutation = useLogin({
+    onSuccess: (data) => {
+      try {
+        if (!data.accessToken) {
+          throw new Error("No access token provided by the server.");
+        }
+        
+        const payloadBase64 = data.accessToken.split('.')[1];
+        const decodedJson = atob(payloadBase64);
+        const payload = JSON.parse(decodedJson);
+
+        
+        const name = payload.email 
+          ? payload.email.split('@')[0].toUpperCase() 
+          : 'OPERATOR_API';
+
+        
+        const mappedRole: ClearanceLevel = payload.role === 'ADMIN' 
+          ? 'L2_COMMAND' 
+          : 'L1_CIVILIAN';
+
+        
+        onSetClearance(mappedRole, name);
+        
+        setErrorMessage(null);
+        onClose();
+      } catch (error) {
+        console.error("Token decode failed:", error);
+        setErrorMessage("Authentication successful, but clearance data is unreadable.");
+      }
     },
     onError: (err) => {
       setErrorMessage(err.message || 'API login failed. Please check backend connection.');
