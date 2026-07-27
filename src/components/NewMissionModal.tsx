@@ -121,7 +121,7 @@ export const NewMissionModal: React.FC<NewMissionModalProps> = ({
               <label className="block text-[#849396] font-bold uppercase mb-1">Priority</label>
               <select
                 value={priority}
-                onChange={(e) => setPriority(e.target.value as any)}
+                onChange={(e) => setPriority(e.target.value as 'ROUTINE' | 'TACTICAL' | 'CRITICAL_ALPHA')}
                 className="w-full bg-[#122131] border border-[#3b494c] p-2 text-[#00e5ff] font-bold focus:border-[#00e5ff] focus:outline-none"
               >
                 <option value="ROUTINE">ROUTINE</option>

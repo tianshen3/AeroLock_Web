@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useLogin } from '../../hooks/useAuth';
+import { useLogin } from '../../hooks/useLogin';
 
 // Custom router hook for environment compatibility
 const useRouter = () => {
@@ -39,6 +39,9 @@ export default function LoginPage() {
         localStorage.setItem('accessToken', token);
         localStorage.setItem('auth_token', token);
         localStorage.setItem('token', token);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('storage'));
+        }
       }
 
       setErrorMessage(null);
@@ -97,7 +100,7 @@ export default function LoginPage() {
                 TERMINAL_AUTHENTICATION
               </h1>
               <p className="text-xs text-[#849396] tracking-wider uppercase">
-                // CLEARANCE_VERIFICATION
+                {'// CLEARANCE_VERIFICATION'}
               </p>
             </div>
 

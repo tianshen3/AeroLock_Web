@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React from 'react';
 import { SystemView } from '../../src/components/views/SystemView';
 
 export default function SystemPage() {

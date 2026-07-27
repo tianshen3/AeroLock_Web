@@ -1,5 +1,5 @@
 import { useMutation, UseMutationOptions } from '@tanstack/react-query';
-import api, { setAuthToken, TOKEN_STORAGE_KEY } from '../utils/api';
+import api, { setAuthToken } from '../utils/api';
 
 export interface LoginCredentials {
   email: string;
@@ -16,6 +16,7 @@ export interface User {
 
 export interface LoginResponse {
   token?: string;
+  accessToken?: string;
   access_token?: string;
   jwt?: string;
   user?: User;

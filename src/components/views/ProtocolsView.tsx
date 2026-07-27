@@ -10,7 +10,6 @@ interface ProtocolsViewProps {
 
 export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ metrics: propsMetrics }) => {
   const { metrics: contextMetrics } = useTerminal();
-  const metrics = propsMetrics || contextMetrics;
   const [activeEncryption, setActiveEncryption] = useState('AES-256-GCM');
   const [pinging, setPinging] = useState(false);
   const [pingResults, setPingResults] = useState<{ node: string; latency: number; status: string }[]>([

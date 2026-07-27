@@ -4,7 +4,7 @@ export const TOKEN_STORAGE_KEY = 'auth_token';
 
 const api = axios.create({
   // Ensure this matches the NestJS backend URL
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api', 
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api', 
   headers: {
     'Content-Type': 'application/json',
   },
