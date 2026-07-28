@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState, Suspense, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Shield, Zap, Check, Lock, RefreshCw, AlertCircle } from 'lucide-react';
 import { TransferState } from '@/src/types';
 import { useConfirmBooking } from '@/src/hooks/useSeats';
@@ -20,6 +20,7 @@ interface ConfirmResponse {
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const rawFlightId = searchParams?.get('flightId');
   const rawSeatId = searchParams?.get('seatId');
   const rawBookingId = searchParams?.get('bookingId');
@@ -64,8 +65,26 @@ function CheckoutContent() {
 
   const [confirmResult, setConfirmResult] = useState<ConfirmResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
 
   const confirmMutation = useConfirmBooking();
+
+  // Auto-redirect to /bookings 3s after payment confirmation
+  useEffect(() => {
+    if (transferState.status !== 'COMPLETED') return;
+    setRedirectCountdown(3);
+    const interval = setInterval(() => {
+      setRedirectCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          router.push('/bookings');
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [transferState.status, router]);
 
   // Initiate Protocol Transfer & Call Confirm API
   const handleInitiateTransfer = () => {
@@ -430,6 +449,11 @@ function CheckoutContent() {
                       <div className="text-[10px] text-[#bac9cc] break-all pt-1">
                         TX_HASH: {transferState.transactionHash}
                       </div>
+                      {redirectCountdown !== null && (
+                        <div className="text-[10px] text-[#00e5ff] font-bold tracking-widest pt-1 border-t border-[#00e5ff]/30">
+                          REDIRECTING_TO_BOOKINGS IN {redirectCountdown}s...
+                        </div>
+                      )}
                     </div>
                   </div>
 

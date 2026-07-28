@@ -130,3 +130,46 @@ export function useConfirmBooking() {
   });
 }
 
+export function useCancelBooking() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ bookingId }: { bookingId: number | string }) => {
+      const baseUrl = getApiBaseUrl();
+      const accessToken =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('auth_token') ||
+            localStorage.getItem('token') ||
+            localStorage.getItem('accessToken')
+          : null;
+
+      if (!accessToken) {
+        throw new Error('401 Unauthorized: Session invalid or login required.');
+      }
+
+      const res = await fetch(`${baseUrl}/bookings/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ bookingId: Number(bookingId) }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('[SYS] CANCEL_SEQUENCE_FAILURE:', errText);
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('401 Unauthorized: Session invalid or login required.');
+        }
+        throw new Error(`Failed to cancel booking: ${res.statusText}`);
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['seats'] });
+    },
+  });
+}

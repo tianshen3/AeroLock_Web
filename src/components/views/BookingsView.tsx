@@ -1,20 +1,36 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useBookings, type Booking, type BookingStatus } from '../../hooks/useBookings';
+import { useCancelBooking } from '../../hooks/useSeats';
+import { useFlights } from '../../hooks/useFlights';
+import { useUserProfile } from '../../hooks/useUserProfile';
+import { getResolvedFullName } from '../../utils/userUtils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const getStatus = (b: Booking): BookingStatus => {
   const raw = (b.status ?? '').toString().toUpperCase().trim();
   if (raw === 'CONFIRMED') return 'CONFIRMED';
-  if (raw === 'PENDING') return 'PENDING';
-  return 'CANCELLED';
+  if (raw === 'CANCELLED') return 'CANCELLED';
+  if (raw === 'EXPIRED') return 'EXPIRED';
+  return 'LOCKED'; // default / PENDING maps to LOCKED
 };
 
-const resolveField = (...candidates: (string | undefined | null)[]): string => {
+const resolveNested = (
+  flat: string | number | undefined | null,
+  nested: string | number | undefined | null,
+): string => {
+  const pick = flat ?? nested;
+  if (pick !== undefined && pick !== null && String(pick).trim()) {
+    return String(pick).trim().toUpperCase();
+  }
+  return '—';
+};
+
+const resolveField = (...candidates: (string | number | undefined | null)[]): string => {
   for (const c of candidates) {
-    if (c && c.toString().trim()) return c.toString().trim().toUpperCase();
+    if (c !== undefined && c !== null && String(c).trim()) return String(c).trim().toUpperCase();
   }
   return '—';
 };
@@ -25,20 +41,60 @@ interface BookingRowProps {
   booking: Booking;
   onCancel: (id: string) => void;
   cancelling: Set<string>;
+  optimisticCancelled: Set<string>;
+  flights: any[];
+  passengerName: string;
 }
 
-const BookingRow: React.FC<BookingRowProps> = ({ booking, onCancel, cancelling }) => {
-  const status = getStatus(booking);
+const BookingRow: React.FC<BookingRowProps> = ({
+  booking,
+  onCancel,
+  cancelling,
+  optimisticCancelled,
+  flights,
+  passengerName,
+}) => {
+  // Optimistic override: if we've locally cancelled this booking, treat it as CANCELLED
+  const status: BookingStatus = optimisticCancelled.has(String(booking.bookingId))
+    ? 'CANCELLED'
+    : getStatus(booking);
   const isConfirmed = status === 'CONFIRMED';
   const isCancelled = status === 'CANCELLED';
-  const isPending = status === 'PENDING';
-  const isRevoking = cancelling.has(booking.id);
+  const isExpired = status === 'EXPIRED';
+  const isRevoking = cancelling.has(String(booking.bookingId));
 
-  const statusBadgeClass = isCancelled
-    ? 'border-[#ffb4ab] text-[#ffb4ab] bg-[#ffb4ab]/10'
-    : isPending
-    ? 'border-amber-400 text-amber-300 bg-amber-400/10'
-    : 'border-[#00e5ff] text-[#00e5ff] bg-[#00e5ff]/10';
+  const statusBadgeClass =
+    isCancelled
+      ? 'border-[#ffb4ab] text-[#ffb4ab] bg-[#ffb4ab]/10'
+      : isExpired
+      ? 'border-amber-500 text-amber-400 bg-amber-500/10'
+      : status === 'LOCKED'
+      ? 'border-[#849396] text-[#849396] bg-[#849396]/10'
+      : 'border-[#00e5ff] text-[#00e5ff] bg-[#00e5ff]/10';
+
+  // Find the matching flight in flights using booking.flightId
+  const flight = flights?.find((f) => Number(f.id) === Number(booking.flightId));
+
+  // Resolve route from nested flight relation, flat fields, or matching flight info
+  const origin = resolveNested(booking.origin, flight?.origin);
+  const destination = resolveNested(booking.destination, flight?.destination);
+  const flightCode = resolveField(
+    booking.flightCode,
+    booking.flightNumber,
+    flight?.flightNumber,
+    booking.flightId,
+  );
+  const seatLabel = resolveField(
+    booking.seatNumber,
+    booking.seat?.seatNumber,
+    booking.seatId ? `SEAT ${booking.seatId}` : null,
+  );
+  const priceLabel = resolveField(
+    booking.price,
+    booking.fare,
+    booking.seat?.price ? `₹${booking.seat.price}` : null,
+    '—',
+  );
 
   return (
     <tr
@@ -49,31 +105,31 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, onCancel, cancelling }
       {/* Passenger / PNR */}
       <td className="p-3">
         <div className="font-bold text-[#00e5ff] text-xs tracking-widest">
-          {resolveField(booking.passengerName, 'PASSENGER')}
+          {resolveField(booking.passengerName, passengerName)}
         </div>
         <div className="text-[10px] text-[#849396] mt-0.5 font-mono tracking-wider">
-          {resolveField(booking.pnr, booking.bookingId, booking.id)}
+          {resolveField(booking.pnr, booking.bookingId ? `PNR-${booking.bookingId}` : null, String(booking.bookingId))}
         </div>
       </td>
 
       {/* Flight Code */}
       <td className="p-3 font-bold text-[#ffffff] text-xs tracking-widest">
-        {resolveField(booking.flightCode, booking.flightId)}
+        {flightCode}
       </td>
 
-      {/* Route */}
+      {/* Route — resolved from flight relation */}
       <td className="p-3 text-xs font-bold text-[#d4e4fa] tracking-widest">
-        {resolveField(booking.origin)} &gt; {resolveField(booking.destination)}
+        {origin} &gt; {destination}
       </td>
 
       {/* Seat */}
       <td className="p-3 font-bold text-[#00e5ff] text-xs tracking-widest">
-        {resolveField(booking.seat, booking.seatId)}
+        {seatLabel}
       </td>
 
       {/* Fare */}
       <td className="p-3 font-bold text-[#00e5ff] text-xs tracking-widest">
-        {resolveField(booking.price, booking.fare)}
+        {priceLabel}
       </td>
 
       {/* Status Badge */}
@@ -89,8 +145,8 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, onCancel, cancelling }
       <td className="p-3 text-right">
         {isConfirmed ? (
           <button
-            id={`cancel-btn-${booking.id}`}
-            onClick={() => onCancel(booking.id)}
+            id={`cancel-btn-${booking.bookingId}`}
+            onClick={() => onCancel(String(booking.bookingId))}
             disabled={isRevoking}
             className="
               px-3 py-1.5 border border-[#ffb4ab] text-[#ffb4ab]
@@ -102,6 +158,8 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, onCancel, cancelling }
           >
             {isRevoking ? '[ REVOKING... ]' : '[ CANCEL_AUTHORIZATION ]'}
           </button>
+        ) : isExpired ? (
+          <span className="text-amber-500 text-[10px] font-bold tracking-widest">[ EXPIRED ]</span>
         ) : (
           <span className="text-[#3b494c] text-[10px] font-bold tracking-widest">—</span>
         )}
@@ -112,56 +170,101 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, onCancel, cancelling }
 
 // ─── BookingsView ─────────────────────────────────────────────────────────────
 
-const STATUS_FILTERS = ['ALL', 'CONFIRMED', 'PENDING', 'CANCELLED'] as const;
+const STATUS_FILTERS = ['ALL', 'CONFIRMED', 'LOCKED', 'CANCELLED', 'EXPIRED'] as const;
 type FilterOption = (typeof STATUS_FILTERS)[number];
 
 export const BookingsView: React.FC = () => {
   const { data: bookings, isLoading, isError, error, refetch } = useBookings();
+  const { data: flights } = useFlights();
+  const { data: userProfile } = useUserProfile();
+  const cancelMutation = useCancelBooking();
 
   const [filter, setFilter] = useState<FilterOption>('ALL');
   const [search, setSearch] = useState('');
+  
+  // optimistic map: bookingId -> 'CANCELLED' for instant UI feedback
+  const [optimisticCancelled, setOptimisticCancelled] = useState<Set<string>>(new Set());
   const [cancelling, setCancelling] = useState<Set<string>>(new Set());
 
-  // ── Cancel handler (optimistic UI stub — server call can be wired here) ──
-  const handleCancel = (id: string) => {
+  // Resolve the logged-in passenger's full name
+  const passengerName = useMemo(() => {
+    if (!userProfile) return 'PASSENGER';
+    return getResolvedFullName(userProfile) || 'PASSENGER';
+  }, [userProfile]);
+
+  // ── Real cancel: POST /api/bookings/cancel { bookingId } ──────────────────
+  const handleCancel = useCallback((id: string) => {
     setCancelling((prev) => new Set(prev).add(id));
-    // Future: POST /api/bookings/:id/cancel — then call refetch()
-    setTimeout(() => {
-      setCancelling((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      refetch();
-    }, 1500);
-  };
+    // Optimistic flip — instantly show CANCELLED in UI
+    setOptimisticCancelled((prev) => new Set(prev).add(id));
+
+    cancelMutation.mutate(
+      { bookingId: Number(id) },
+      {
+        onSuccess: () => {
+          refetch();
+        },
+        onError: (err) => {
+          console.error('[AEROLOCK] CANCEL_ERROR:', err);
+          // Roll back optimistic update on failure
+          setOptimisticCancelled((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        },
+        onSettled: () => {
+          setCancelling((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        },
+      }
+    );
+  }, [cancelMutation, refetch]);
 
   // ── Filter + Search ──────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     if (!bookings) return [];
     return bookings.filter((b) => {
-      const status = getStatus(b);
+      const status = optimisticCancelled.has(String(b.bookingId)) ? 'CANCELLED' : getStatus(b);
       const matchesFilter = filter === 'ALL' || status === filter;
       if (!search.trim()) return matchesFilter;
+
+      const flight = flights?.find((f) => Number(f.id) === Number(b.flightId));
+      const origin = resolveNested(b.origin, flight?.origin);
+      const destination = resolveNested(b.destination, flight?.destination);
+      const flightCode = resolveField(
+        b.flightCode,
+        b.flightNumber,
+        flight?.flightNumber,
+        b.flightId,
+      );
+      const seatLabel = resolveField(
+        b.seatNumber,
+        b.seat?.seatNumber,
+        b.seatId ? `SEAT ${b.seatId}` : null,
+      );
+
       const q = search.toLowerCase();
       const hay = [
         b.passengerName,
+        passengerName,
         b.pnr,
         b.bookingId,
         b.id,
-        b.flightCode,
-        b.flightId,
-        b.origin,
-        b.destination,
-        b.seat,
-        b.seatId,
+        flightCode,
+        origin,
+        destination,
+        seatLabel,
       ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
       return matchesFilter && hay.includes(q);
     });
-  }, [bookings, filter, search]);
+  }, [bookings, filter, search, flights, passengerName, optimisticCancelled]);
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -291,10 +394,13 @@ export const BookingsView: React.FC = () => {
             <tbody>
               {filtered.map((b) => (
                 <BookingRow
-                  key={b.id}
+                  key={b.bookingId}
                   booking={b}
                   onCancel={handleCancel}
                   cancelling={cancelling}
+                  optimisticCancelled={optimisticCancelled}
+                  flights={flights || []}
+                  passengerName={passengerName}
                 />
               ))}
             </tbody>
