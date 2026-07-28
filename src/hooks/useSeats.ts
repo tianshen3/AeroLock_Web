@@ -118,7 +118,14 @@ export function useConfirmBooking() {
         if (res.status === 401 || res.status === 403) {
           throw new Error('401 Unauthorized: Session invalid or login required.');
         }
-        throw new Error(`Failed to confirm booking: ${res.statusText}`);
+        let errMsg = `Failed to confirm booking: ${res.statusText}`;
+        try {
+          const parsed = JSON.parse(errText);
+          if (parsed && parsed.message) {
+            errMsg = parsed.message;
+          }
+        } catch {}
+        throw new Error(errMsg);
       }
 
       return res.json();

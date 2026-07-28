@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState, Suspense, useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Shield, Zap, Check, Lock, RefreshCw, AlertCircle } from 'lucide-react';
 import { TransferState } from '@/src/types';
 import { useConfirmBooking } from '@/src/hooks/useSeats';
 import { useUserProfile } from '@/src/hooks/useUserProfile';
 import { useProfile } from '@/src/hooks/useCustomer';
 import { useTerminal } from '@/src/context/TerminalContext';
+import { useBookings } from '@/src/hooks/useBookings';
+import { useFlights } from '@/src/hooks/useFlights';
 import { getResolvedFullName, getResolvedFirstName, getStoredUserObject } from '@/src/utils/userUtils';
 
 interface ConfirmResponse {
@@ -20,6 +22,7 @@ interface ConfirmResponse {
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const rawFlightId = searchParams?.get('flightId');
   const rawSeatId = searchParams?.get('seatId');
   const rawBookingId = searchParams?.get('bookingId');
@@ -31,18 +34,41 @@ function CheckoutContent() {
   const { data: userProfile } = useUserProfile();
   const { data: customerProfile } = useProfile();
   const { operator } = useTerminal();
+  
+  // Query live bookings and flights to resolve booking status and routing
+  const { data: bookings } = useBookings();
+  const { data: flights } = useFlights();
+
+  const activeBooking = useMemo(() => {
+    if (!bookings || !bookingId) return null;
+    return bookings.find((b) => Number(b.bookingId) === Number(bookingId));
+  }, [bookings, bookingId]);
+
+  const targetFlightId = activeBooking ? activeBooking.flightId : flightId;
+  const flight = useMemo(() => {
+    if (!flights || !targetFlightId) return null;
+    return flights.find((f) => Number(f.id) === Number(targetFlightId) || f.flightNumber === String(targetFlightId));
+  }, [flights, targetFlightId]);
+
+  const origin = flight?.origin || 'JFK';
+  const destination = flight?.destination || 'LHR';
+  const flightCode = flight?.flightNumber || flightId;
 
   const getPassengerName = () => {
+    // 1. Try useUserProfile response
     const nameFromUserProfile = getResolvedFullName(userProfile) || getResolvedFirstName(userProfile);
     if (nameFromUserProfile) return nameFromUserProfile;
 
+    // 2. Try useProfile response
     const nameFromCustomerProfile = getResolvedFullName(customerProfile) || getResolvedFirstName(customerProfile);
     if (nameFromCustomerProfile) return nameFromCustomerProfile;
 
+    // 3. Try stored user object in localStorage
     const storedUser = getStoredUserObject();
     const nameFromStored = getResolvedFullName(storedUser) || getResolvedFirstName(storedUser);
     if (nameFromStored && nameFromStored !== 'OPERATOR_01') return nameFromStored;
 
+    // 4. Try TerminalContext operator
     if (operator?.name && !operator.name.startsWith('OPERATOR_01')) {
       return operator.name;
     }
@@ -63,61 +89,63 @@ function CheckoutContent() {
 
   const confirmMutation = useConfirmBooking();
 
+  // Auto-redirect to /dashboard as soon as booking status becomes CONFIRMED or transfer completes
+  useEffect(() => {
+    if (activeBooking?.status === 'CONFIRMED' || transferState.status === 'COMPLETED') {
+      console.log('[AEROLOCK_REDIRECT] Booking confirmed or complete. Auto-redirecting to /dashboard...');
+      if (typeof window !== 'undefined') {
+        router.push('/dashboard');
+        // Fallback in case client-side router transition is blocked
+        const fallbackTimer = setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 150);
+        return () => clearTimeout(fallbackTimer);
+      }
+    }
+  }, [activeBooking?.status, transferState.status, router]);
+
   // Initiate Protocol Transfer & Call Confirm API
   const handleInitiateTransfer = () => {
     console.log('[AEROLOCK_TELEMETRY] PAYLOAD TRANSFER INITIATED FOR SEAT: ', seatId);
 
-    if (transferState.status === 'PROCESSING' || transferState.status === 'COMPLETED') return;
+    if (transferState.status === 'PROCESSING' || transferState.status === 'COMPLETED') {
+      console.log('[AEROLOCK_TELEMETRY] ALREADY PROCESSING OR COMPLETED');
+      return;
+    }
 
     setErrorMessage(null);
-    setTransferState({ status: 'PROCESSING', progress: 10 });
+    setTransferState({ status: 'PROCESSING', progress: 50 });
 
-    // Step 1: Authenticating
-    setTimeout(() => {
-      setTransferState({ status: 'AUTHENTICATING', progress: 35 });
-    }, 800);
+    const targetBookingId = bookingId ? Number(bookingId) : 57;
+    console.log('[AEROLOCK_TELEMETRY] CALLING CONFIRM API FOR BOOKING:', targetBookingId);
 
-    // Step 2: PayPal Sync
-    setTimeout(() => {
-      setTransferState({ status: 'PAYPAL_SYNC', progress: 70 });
-    }, 1800);
-
-    // Step 3: Trigger Booking Confirmation API
-    setTimeout(() => {
-      const targetBookingId = bookingId ? Number(bookingId) : 57;
-
-      confirmMutation.mutate(
-        { bookingId: targetBookingId },
-        {
-          onSuccess: (data) => {
-            console.log('[AEROLOCK_API] CONFIRM_SUCCESS:', data);
-            const hash = `0x${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)}`.toUpperCase();
-            setConfirmResult(data);
-            setTransferState({
-              status: 'COMPLETED',
-              progress: 100,
-              transactionHash: hash,
-              timestamp: new Date().toISOString(),
-            });
-          },
-          onError: (err: Error) => {
-            console.error('[AEROLOCK_API] CONFIRM_ERROR:', err);
-            // Fallback for demo mode if no valid booking ID exists on server
-            const hash = `0x${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)}`.toUpperCase();
-            setConfirmResult({
-              bookingId: targetBookingId,
-              status: 'CONFIRMED',
-            });
-            setTransferState({
-              status: 'COMPLETED',
-              progress: 100,
-              transactionHash: hash,
-              timestamp: new Date().toISOString(),
-            });
-          },
-        }
-      );
-    }, 2800);
+    confirmMutation.mutate(
+      { bookingId: targetBookingId },
+      {
+        onSuccess: (data) => {
+          console.log('[AEROLOCK_API] CONFIRM_SUCCESS response received:', data);
+          const hash = `0x${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)}`.toUpperCase();
+          setConfirmResult(data);
+          setTransferState({
+            status: 'COMPLETED',
+            progress: 100,
+            transactionHash: hash,
+            timestamp: new Date().toISOString(),
+          });
+          
+          console.log('[AEROLOCK_REDIRECT] Redirecting to /dashboard...');
+          if (typeof window !== 'undefined') {
+            window.location.href = '/dashboard';
+          }
+        },
+        onError: (err: any) => {
+          console.error('[AEROLOCK_API] CONFIRM_ERROR received:', err);
+          // Show the clean API error message in the alert instead of faking success
+          setErrorMessage(err?.message || 'Failed to confirm booking.');
+          setTransferState({ status: 'IDLE', progress: 0 });
+        },
+      }
+    );
   };
 
   const handleReset = () => {
@@ -192,7 +220,7 @@ function CheckoutContent() {
                     FLIGHT_ID:
                   </span>
                   <span className="sm:col-span-7 font-bold text-[#d4e4fa] tracking-wider uppercase text-base font-mono">
-                    [{flightId}]
+                    [{flightCode}]
                   </span>
                 </div>
 
@@ -213,7 +241,7 @@ function CheckoutContent() {
                   </span>
                   <span className="sm:col-span-7 font-bold text-[#00e5ff] tracking-widest uppercase flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-[#00e5ff]" />
-                    {confirmResult?.status || 'LOCKED'}
+                    {activeBooking?.status || confirmResult?.status || 'LOCKED'}
                   </span>
                 </div>
 
@@ -236,14 +264,14 @@ function CheckoutContent() {
                     FLIGHT_IDENTIFIER
                   </div>
                   <div className="text-xl font-extrabold tracking-wider text-[#d4e4fa]">
-                    {flightId}
+                    {flightCode}
                   </div>
 
                   <div className="text-[10px] text-[#bac9cc] tracking-widest uppercase pt-2">
                     TRANSIT_ROUTE
                   </div>
                   <div className="text-sm font-bold tracking-widest text-[#00e5ff]">
-                    JFK &gt;&gt; LHR
+                    {origin} &gt;&gt; {destination}
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#3b494c]/40 text-[10px]">
@@ -265,7 +293,7 @@ function CheckoutContent() {
                       ALLOCATED_SEAT
                     </span>
                     <span className="text-[10px] text-[#00e5ff] font-bold uppercase">
-                      STATUS: {confirmResult?.status || 'LOCKED'}
+                      STATUS: {activeBooking?.status || confirmResult?.status || 'LOCKED'}
                     </span>
                   </div>
 
@@ -410,7 +438,7 @@ function CheckoutContent() {
               )}
 
               {/* PRIMARY ACTION BUTTON: INITIATE_TRANSFER_PROTOCOL */}
-              {transferState.status === 'COMPLETED' ? (
+              {activeBooking?.status === 'CONFIRMED' || transferState.status === 'COMPLETED' ? (
                 <div className="space-y-3">
                   <div className="bg-[#00e5ff]/20 border border-[#00e5ff] p-4 text-center space-y-2">
                     <div className="text-xs font-bold text-[#00e5ff] tracking-widest flex items-center justify-center gap-1.5">
@@ -418,23 +446,28 @@ function CheckoutContent() {
                       PAYMENT_CONFIRMATION_SUCCESSFUL
                     </div>
                     <div className="text-[11px] text-[#d4e4fa] font-mono space-y-1 pt-1 border-t border-[#00e5ff]/30">
-                      <div>STATUS: <strong className="text-[#00e5ff]">{confirmResult?.status || 'CONFIRMED'}</strong></div>
-                      <div>BOOKING_ID: <strong className="text-[#00e5ff]">#{confirmResult?.bookingId || bookingId || 57}</strong></div>
-                      {confirmResult?.userId && (
-                        <div>USER_ID: <strong className="text-[#d4e4fa]">#{confirmResult.userId}</strong></div>
+                      <div>STATUS: <strong className="text-[#00e5ff]">{activeBooking?.status || confirmResult?.status || 'CONFIRMED'}</strong></div>
+                      <div>BOOKING_ID: <strong className="text-[#00e5ff]">#{activeBooking?.bookingId || confirmResult?.bookingId || bookingId || 57}</strong></div>
+                      {(activeBooking?.userId || confirmResult?.userId) && (
+                        <div>USER_ID: <strong className="text-[#d4e4fa]">#{activeBooking?.userId || confirmResult?.userId}</strong></div>
                       )}
-                      <div className="text-[10px] text-[#bac9cc] break-all pt-1">
-                        TX_HASH: {transferState.transactionHash}
-                      </div>
+                      {transferState.transactionHash && (
+                        <div className="text-[10px] text-[#bac9cc] break-all pt-1">
+                          TX_HASH: {transferState.transactionHash}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   <button
-                    onClick={handleReset}
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        window.location.href = '/dashboard';
+                      }
+                    }}
                     className="w-full bg-[#122131] hover:bg-[#00e5ff] text-[#00e5ff] hover:text-[#051424] border border-[#00e5ff] font-bold py-3 px-4 text-xs tracking-widest uppercase transition-all duration-150 rounded-none flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <RefreshCw className="w-4 h-4" />
-                    RE_AUTHORIZE_PROTOCOL
+                    [ GO TO BOOKINGS ]
                   </button>
                 </div>
               ) : (

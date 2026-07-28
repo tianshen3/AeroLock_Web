@@ -19,7 +19,20 @@ export interface Booking {
   status: BookingStatus;
   // Fields that may exist if server populates them in the list endpoint
   id?: number | string;
-  [key: string]: unknown;
+  passengerName?: string;
+  pnr?: string;
+  flightCode?: string;
+  flightNumber?: string;
+  origin?: string;
+  destination?: string;
+  seatNumber?: string;
+  seat?: {
+    seatNumber?: string;
+    price?: number;
+  };
+  price?: string | number;
+  fare?: string | number;
+  [key: string]: any;
 }
 
 export type BookingsList = Booking[];
