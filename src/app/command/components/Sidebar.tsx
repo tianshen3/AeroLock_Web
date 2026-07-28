@@ -121,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-3">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span className="font-bold text-xs tracking-wider uppercase">OVERRIDES</span>
+                <span className="font-bold text-xs tracking-wider uppercase">BOOKINGS</span>
               </div>
               <span className="text-[10px] font-mono px-1.5 py-0.5 border border-[#3b494c] bg-[#051424] text-[#d4e4fa] rounded-none">
                 {overrideCount}

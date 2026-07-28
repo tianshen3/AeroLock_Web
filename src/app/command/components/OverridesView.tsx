@@ -93,10 +93,6 @@ export const OverridesView: React.FC<OverridesViewProps> = ({
             <AlertTriangle className="w-6 h-6 text-[#ffb4ab]" />
             RESERVATION_LEDGER
           </h2>
-          <p className="text-xs text-[#ffb4ab] mt-1 font-bold flex items-center gap-2 uppercase">
-            <span className="w-2 h-2 bg-[#ffb4ab] animate-pulse"></span>
-            PRIORITY_ACCESS_OVERRIDE_ENABLED (GET /bookings/admin)
-          </p>
         </div>
 
         <button
@@ -107,7 +103,7 @@ export const OverridesView: React.FC<OverridesViewProps> = ({
           className="bg-[#ffb4ab] text-[#051424] px-5 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-white transition-colors border border-[#ffb4ab] self-start sm:self-auto shrink-0 rounded-none uppercase font-mono"
         >
           <Plus className="w-4 h-4" />
-          MANUAL_OVERRIDE_INJECT
+          MANUAL_BOOKING_INJECT
         </button>
       </div>
 
@@ -161,7 +157,7 @@ export const OverridesView: React.FC<OverridesViewProps> = ({
           </div>
         ) : filteredOverrides.length === 0 ? (
           <div className="panel-bg border-technical p-12 text-center rounded-none">
-            <p className="text-xs text-[#849396] uppercase font-mono">NO OVERRIDE RECORDS FOUND IN LEDGER</p>
+            <p className="text-xs text-[#849396] uppercase font-mono">NO BOOKING RECORDS FOUND IN LEDGER</p>
           </div>
         ) : (
           filteredOverrides.map((o) => (
@@ -249,7 +245,7 @@ export const OverridesView: React.FC<OverridesViewProps> = ({
 
             <form onSubmit={handleConfirmCancel} className="space-y-4 text-xs font-mono">
               <p className="text-[#d4e4fa] leading-relaxed uppercase">
-                YOU ARE ABOUT TO FORCE CANCEL RESERVATION OVERRIDE FOR{' '}
+                YOU ARE ABOUT TO FORCE CANCEL RESERVATION BOOKING FOR{' '}
                 <span className="font-bold text-[#ffb4ab]">{cancelingRecord.user}</span> ON VECTOR{' '}
                 <span className="font-bold text-[#00e5ff]">{cancelingRecord.flight}</span> (SEAT {cancelingRecord.seat}).
               </p>
@@ -289,14 +285,14 @@ export const OverridesView: React.FC<OverridesViewProps> = ({
         </div>
       )}
 
-      {/* MODAL: MANUAL OVERRIDE INJECT */}
+      {/* MODAL: MANUAL BOOKING INJECT */}
       {showInjectModal && (
         <div className="fixed inset-0 z-50 bg-[#051424]/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="panel-bg border-technical border-[#ffb4ab] w-full max-w-lg p-6 relative rounded-none font-mono">
             <div className="flex items-center justify-between border-b border-[#3b494c] pb-4 mb-6">
               <h3 className="font-bold text-lg text-[#ffb4ab] flex items-center gap-2 uppercase">
                 <Plus className="w-5 h-5" />
-                MANUAL_OVERRIDE_INJECT
+                MANUAL_BOOKING_INJECT
               </h3>
               <button
                 onClick={() => setShowInjectModal(false)}
@@ -366,7 +362,7 @@ export const OverridesView: React.FC<OverridesViewProps> = ({
                   type="submit"
                   className="px-5 py-2 bg-[#ffb4ab] text-[#051424] font-bold hover:bg-white transition-colors rounded-none uppercase"
                 >
-                  INJECT_PRIORITY_OVERRIDE
+                  INJECT_PRIORITY_BOOKING
                 </button>
               </div>
             </form>
