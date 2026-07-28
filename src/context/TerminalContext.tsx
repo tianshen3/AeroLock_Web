@@ -18,6 +18,7 @@ import {
   INITIAL_FLIGHTS,
   INITIAL_MISSIONS,
 } from '../data/mockData';
+import { getResolvedFullName, getResolvedFirstName } from '../utils/userUtils';
 
 interface TerminalContextType {
   activeTab: TabType;
@@ -86,7 +87,10 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (userStr) {
           try {
             const userObj = JSON.parse(userStr);
-            if (userObj.name) name = String(userObj.name).toUpperCase();
+            const resolvedName = getResolvedFullName(userObj) || getResolvedFirstName(userObj);
+            if (resolvedName) {
+              name = resolvedName.toUpperCase();
+            }
             if (userObj.role && String(userObj.role).toUpperCase().includes('CIVILIAN')) {
               clearance = 'L1_CIVILIAN';
             } else if (userObj.role) {

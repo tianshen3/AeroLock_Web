@@ -5,6 +5,10 @@ import { useSearchParams } from 'next/navigation';
 import { Shield, Zap, Check, Lock, RefreshCw, AlertCircle } from 'lucide-react';
 import { TransferState } from '@/src/types';
 import { useConfirmBooking } from '@/src/hooks/useSeats';
+import { useUserProfile } from '@/src/hooks/useUserProfile';
+import { useProfile } from '@/src/hooks/useCustomer';
+import { useTerminal } from '@/src/context/TerminalContext';
+import { getResolvedFullName, getResolvedFirstName, getStoredUserObject } from '@/src/utils/userUtils';
 
 interface ConfirmResponse {
   bookingId: number;
@@ -23,7 +27,34 @@ function CheckoutContent() {
   const flightId = (rawFlightId || 'AL101').toUpperCase();
   const seatId = (rawSeatId || 'A3').toUpperCase();
   const bookingId = rawBookingId || null;
-  const passengerName = 'VALERIAN_KRAVITZ';
+
+  const { data: userProfile } = useUserProfile();
+  const { data: customerProfile } = useProfile();
+  const { operator } = useTerminal();
+
+  const getPassengerName = () => {
+    // 1. Try useUserProfile response
+    const nameFromUserProfile = getResolvedFullName(userProfile) || getResolvedFirstName(userProfile);
+    if (nameFromUserProfile) return nameFromUserProfile;
+
+    // 2. Try useProfile response
+    const nameFromCustomerProfile = getResolvedFullName(customerProfile) || getResolvedFirstName(customerProfile);
+    if (nameFromCustomerProfile) return nameFromCustomerProfile;
+
+    // 3. Try stored user object in localStorage
+    const storedUser = getStoredUserObject();
+    const nameFromStored = getResolvedFullName(storedUser) || getResolvedFirstName(storedUser);
+    if (nameFromStored && nameFromStored !== 'OPERATOR_01') return nameFromStored;
+
+    // 4. Try TerminalContext operator
+    if (operator?.name && !operator.name.startsWith('OPERATOR_01')) {
+      return operator.name;
+    }
+
+    return 'GUEST_OPERATOR';
+  };
+
+  const passengerName = getPassengerName().toUpperCase();
 
   // Transfer Protocol State
   const [transferState, setTransferState] = useState<TransferState>({

@@ -71,10 +71,16 @@ export const useLogin = (options?: UseLoginOptions) => {
       }
 
       // 2. Save and update user state
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+      const userObj: User = data.user || {
+        id: variables.email,
+        email: variables.email,
+        name: variables.email.split('@')[0],
+      };
+
+      if (userObj) {
+        localStorage.setItem('user', JSON.stringify(userObj));
         if (setUserState) {
-          setUserState(data.user);
+          setUserState(userObj);
         }
       }
 

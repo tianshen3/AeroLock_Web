@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTerminal } from '../context/TerminalContext';
+import { useUserProfile } from '../hooks/useUserProfile';
+import { getResolvedFullName, getStoredUserObject } from '../utils/userUtils';
 
 interface HeaderProps {
   isSidebarOpen?: boolean;
@@ -11,9 +13,27 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onToggleSidebar }) => {
   const { setActiveTab, setIsLoginOpen, operator, metrics, handleLogout } = useTerminal();
+  const { data: userProfile } = useUserProfile();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  const getDisplayName = () => {
+    const fromProfile = getResolvedFullName(userProfile);
+    if (fromProfile) return fromProfile.toUpperCase();
+
+    const storedUser = getStoredUserObject();
+    const fromStored = getResolvedFullName(storedUser);
+    if (fromStored && fromStored !== 'OPERATOR_01') return fromStored.toUpperCase();
+
+    if (operator?.name && !operator.name.startsWith('OPERATOR_01')) {
+      return operator.name.toUpperCase();
+    }
+
+    return 'OPERATOR';
+  };
+
+  const displayName = getDisplayName();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -107,7 +127,7 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onToggleSidebar }
               <span className={`w-2 h-2 rounded-full ${isUserMenuOpen ? 'bg-[#051424]' : 'bg-[#00e5ff] animate-pulse'}`}></span>
               <span>{operator.clearance.replace('_', ' ')}</span>
               <span className={`hidden md:inline font-normal text-[10px] ${isUserMenuOpen ? 'text-[#051424]/80' : 'text-[#bac9cc]'}`}>
-                [{operator.name}]
+                [{displayName}]
               </span>
               <span className="material-symbols-outlined text-xs">
                 {isUserMenuOpen ? 'expand_less' : 'expand_more'}

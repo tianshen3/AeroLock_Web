@@ -7,6 +7,7 @@ import { useProfile } from '../hooks/useCustomer';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useFlights } from '../hooks/useFlights';
 import { useTerminal } from '../context/TerminalContext';
+import { getResolvedFullName, getStoredUserObject } from '../utils/userUtils';
 import Providers from './Providers';
 import { Header } from './Header';
 import { Footer } from './Footer';
@@ -29,8 +30,6 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
   const {
     data: userProfile,
     isLoading: isUserProfileLoading,
-    isError: isUserProfileError,
-    isSuccess: isUserProfileSuccess,
   } = useUserProfile();
   useFlights();
 
@@ -64,35 +63,36 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
     setIsProfileOpen(false);
   };
 
-  // Extract operator display name and clearance level
-  const firstName = profile?.name
-    ? profile.name.split(' ')[0].toUpperCase()
-    : operator.name
-    ? operator.name.split(' ')[0].toUpperCase()
-    : 'OPERATOR';
-  const clearance = operator.clearance;
-
   // Helper to determine operator title text for sidebar header
   const getSidebarHeaderTitle = () => {
+    const nameFromUserProfile = getResolvedFullName(userProfile);
+    if (nameFromUserProfile) return nameFromUserProfile.toUpperCase();
+
+    const nameFromCustomerProfile = getResolvedFullName(profile);
+    if (nameFromCustomerProfile) return nameFromCustomerProfile.toUpperCase();
+
+    const storedUser = getStoredUserObject();
+    const nameFromStored = getResolvedFullName(storedUser);
+    if (nameFromStored && nameFromStored !== 'OPERATOR_01') {
+      return nameFromStored.toUpperCase();
+    }
+
+    if (operator?.name && !operator.name.startsWith('OPERATOR_01')) {
+      return operator.name.toUpperCase();
+    }
+
     if (isUserProfileLoading) {
       return '[ AUTHENTICATING... ]';
     }
 
-    const fetchedFirstName =
-      userProfile?.firstName ||
-      userProfile?.user?.firstName ||
-      (userProfile?.name ? userProfile.name.split(' ')[0] : undefined);
-
-    if (isUserProfileError || !userProfile || !fetchedFirstName) {
-      return '[ GUEST_OPERATOR ]';
-    }
-
-    if (isUserProfileSuccess) {
-      return fetchedFirstName;
-    }
-
     return '[ GUEST_OPERATOR ]';
   };
+
+  // Extract operator display name and clearance level for sidebar footer
+  const firstName = getSidebarHeaderTitle().startsWith('[')
+    ? 'OPERATOR'
+    : getSidebarHeaderTitle();
+  const clearance = operator.clearance;
 
   // Navigation Items Matrix
   const navItems = [

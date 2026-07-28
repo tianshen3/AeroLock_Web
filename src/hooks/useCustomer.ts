@@ -19,7 +19,7 @@ export type Bookings = Booking[];
 
 const BASE_URL =
   (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) ||
-  'http://localhost:5001/api';
+  'https://aerolock-server.onrender.com/api';
 
 /**
  * Helper function to retrieve the JWT access token safely from localStorage
@@ -83,12 +83,15 @@ const fetchAuthenticated = async <T>(endpoint: string): Promise<T> => {
 };
 
 /**
- * TanStack useQuery hook that performs a GET request to http://localhost:5001/api/auth/profile
+ * TanStack useQuery hook that performs a GET request to https://aerolock-server.onrender.com/api/auth/profile
  */
 export const useProfile = () => {
+  const token = getAccessToken();
   return useQuery<Profile, Error>({
-    queryKey: ['profile'],
+    queryKey: ['profile', token || 'guest'],
     queryFn: () => fetchAuthenticated<Profile>('/auth/profile'),
+    staleTime: token ? 1000 * 60 * 30 : 0, // 30 min if authenticated, 0 for guest
+    retry: 1,
   });
 };
 
