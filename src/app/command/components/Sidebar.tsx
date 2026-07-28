@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ViewType } from '../types';
-import { Users, Hourglass, Rocket, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Users, Hourglass, Rocket, AlertTriangle, ShieldCheck, LogOut, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface SidebarProps {
   activeView: ViewType;
@@ -11,7 +11,7 @@ interface SidebarProps {
   waitlistCount?: number;
   logCount?: number;
   operatorName: string;
-  setOperatorName: (name: string) => void;
+  setOperatorName?: (name: string) => void;
   playBeep: () => void;
 }
 
@@ -23,23 +23,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
   personnelCount,
   waitlistCount = 0,
   operatorName,
-  setOperatorName,
   playBeep
 }) => {
-  const [isEditingOperator, setIsEditingOperator] = React.useState(false);
-  const [tempName, setTempName] = React.useState(operatorName);
+  const [showOperatorMenu, setShowOperatorMenu] = useState(false);
 
   const handleNav = (v: ViewType) => {
     playBeep();
     setView(v);
   };
 
-  const handleSaveOperator = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (tempName.trim()) {
-      setOperatorName(tempName.trim().toUpperCase());
+  const handleLogout = () => {
+    playBeep();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('token');
+      localStorage.removeItem('clearance');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     }
-    setIsEditingOperator(false);
   };
 
   return (
@@ -132,41 +135,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* OPERATOR BOX */}
-      <div className="p-4 sm:p-5 border-t border-[#3b494c] bg-[#122131] rounded-none">
-        <div className="flex items-center justify-between mb-2">
+      <div className="relative border-t border-[#3b494c] bg-[#122131] rounded-none">
+        {/* DROPDOWN MENU POPOVER */}
+        {showOperatorMenu && (
+          <div className="absolute bottom-full left-0 w-full bg-[#051424] border-t border-b border-[#ffb4ab] p-2 shadow-2xl z-20 font-mono">
+            <button
+              onClick={handleLogout}
+              className="w-full text-left px-3 py-2 text-[11px] text-[#ffb4ab] bg-[#ffb4ab]/10 border border-[#ffb4ab]/40 hover:bg-[#ffb4ab] hover:text-[#051424] font-bold flex items-center justify-between font-mono uppercase transition-all"
+            >
+              <span>TERMINATE SESSION / LOGOUT</span>
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        <div
+          onClick={() => {
+            playBeep();
+            setShowOperatorMenu(!showOperatorMenu);
+          }}
+          className="p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:bg-[#18283a] transition-colors select-none"
+          title="Click to toggle Logout option"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#ffb4ab]/10 border border-[#ffb4ab] flex items-center justify-center text-[#ffb4ab] font-bold text-xs font-mono rounded-none">
+            <div className="w-8 h-8 bg-[#ffb4ab]/10 border border-[#ffb4ab] flex items-center justify-center text-[#ffb4ab] font-bold text-xs font-mono rounded-none shrink-0">
               AD
             </div>
             <div>
               <p className="text-[10px] text-[#849396] leading-none mb-1 font-mono uppercase">OPERATOR</p>
-              {isEditingOperator ? (
-                <form onSubmit={handleSaveOperator} className="flex gap-1">
-                  <input
-                    type="text"
-                    value={tempName}
-                    onChange={(e) => setTempName(e.target.value)}
-                    className="bg-[#051424] border border-[#ffb4ab] text-[#d4e4fa] text-[11px] font-bold px-1 py-0.5 w-28 uppercase focus:outline-none font-mono rounded-none"
-                    autoFocus
-                  />
-                  <button type="submit" className="text-[10px] bg-[#ffb4ab] text-[#051424] font-bold px-1.5 rounded-none">
-                    OK
-                  </button>
-                </form>
-              ) : (
-                <p
-                  onClick={() => setIsEditingOperator(true)}
-                  className="text-[12px] font-bold text-[#d4e4fa] hover:text-[#ffb4ab] cursor-pointer flex items-center gap-1 font-mono uppercase"
-                  title="Click to edit operator ID"
-                >
-                  <span>{operatorName}</span>
-                </p>
-              )}
+              <p className="text-[12px] font-bold text-[#d4e4fa] flex items-center gap-1 font-mono uppercase">
+                <span>{operatorName}</span>
+              </p>
             </div>
           </div>
-          <span title="Clearance L2 COMMAND Verified">
-            <ShieldCheck className="w-4 h-4 text-[#ffb4ab]" />
-          </span>
+          <div className="flex items-center gap-1.5 text-[#ffb4ab]">
+            <span title="Clearance L2 COMMAND Verified">
+              <ShieldCheck className="w-4 h-4" />
+            </span>
+            {showOperatorMenu ? (
+              <ChevronDown className="w-3.5 h-3.5 text-[#ffb4ab]" />
+            ) : (
+              <ChevronUp className="w-3.5 h-3.5 text-[#849396]" />
+            )}
+          </div>
         </div>
       </div>
     </aside>
