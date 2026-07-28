@@ -23,7 +23,6 @@ export const VectorsView: React.FC<VectorsViewProps> = ({
   playBeep,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingVector, setEditingVector] = useState<FlightVector | null>(null);
   const [terminatingVector, setTerminatingVector] = useState<FlightVector | null>(null);
@@ -55,11 +54,10 @@ export const VectorsView: React.FC<VectorsViewProps> = ({
 
   // Filtered Vectors
   const filteredVectors = displayVectors.filter((v) => {
-    const matchesSearch =
+    return (
       v.flight.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.route.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
-    return matchesSearch && matchesStatus;
+      v.route.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   });
 
   const handleCreateVector = (e: React.FormEvent) => {
@@ -131,7 +129,7 @@ export const VectorsView: React.FC<VectorsViewProps> = ({
         </button>
       </div>
 
-      {/* SEARCH AND FILTER BAR */}
+      {/* SEARCH BAR */}
       <div className="panel-bg border-technical p-4 flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center rounded-none">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-[#849396] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -142,26 +140,6 @@ export const VectorsView: React.FC<VectorsViewProps> = ({
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-[#051424] border border-[#3b494c] text-[#d4e4fa] text-xs pl-9 pr-4 py-2 uppercase placeholder:text-[#849396]/60 focus:outline-none focus:border-[#ffb4ab] rounded-none font-mono"
           />
-        </div>
-
-        {/* STATUS FILTER BUTTONS */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 text-[10px]">
-          {['ALL', 'ON_TIME', 'DEPARTED', 'PRE_FLIGHT', 'IN_AIR', 'DELAYED'].map((st) => (
-            <button
-              key={st}
-              onClick={() => {
-                playBeep();
-                setStatusFilter(st);
-              }}
-              className={`px-3 py-1.5 border transition-colors whitespace-nowrap rounded-none uppercase font-mono ${
-                statusFilter === st
-                  ? 'border-[#ffb4ab] text-[#ffb4ab] bg-[#ffb4ab]/10 font-bold'
-                  : 'border-[#3b494c] text-[#849396] hover:text-[#d4e4fa]'
-              }`}
-            >
-              {st}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -181,43 +159,25 @@ export const VectorsView: React.FC<VectorsViewProps> = ({
               key={f.id}
               className="panel-bg border-technical p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 group hover:border-[#ffb4ab] transition-colors rounded-none"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 flex-1">
                 {/* IDENT */}
                 <div className="border-r-0 sm:border-r border-[#3b494c] pr-4">
                   <p className="text-[10px] text-[#849396] mb-1 font-mono uppercase">IDENT</p>
                   <p className="font-bold text-lg text-[#d4e4fa] font-mono">FLIGHT: {f.flight}</p>
-                  <p className="text-[10px] text-[#ffb4ab] mt-0.5 font-mono">{f.clearance || 'LEVEL-4 COMMAND'}</p>
                 </div>
 
                 {/* TRAJECTORY */}
-                <div className="border-r-0 md:border-r border-[#3b494c] pr-4">
+                <div className="border-r-0 sm:border-r border-[#3b494c] pr-4">
                   <p className="text-[10px] text-[#849396] mb-1 font-mono uppercase">TRAJECTORY</p>
                   <p className="font-bold text-lg text-[#ffb4ab] font-mono">{f.route}</p>
                   <p className="text-[10px] text-[#849396] mt-0.5 font-mono">ALT: {f.altitude || '38,000 FT'}</p>
                 </div>
 
                 {/* DEPARTURE */}
-                <div className="border-r-0 sm:border-r border-[#3b494c] pr-4">
+                <div>
                   <p className="text-[10px] text-[#849396] mb-1 font-mono uppercase">DEPARTURE / ETA</p>
                   <p className="font-bold text-sm text-[#d4e4fa] font-mono">{f.departure}</p>
                   <p className="text-[10px] text-[#849396] mt-0.5 font-mono">ETA: {f.eta || 'PENDING'}</p>
-                </div>
-
-                {/* STATUS & PAYLOAD */}
-                <div>
-                  <p className="text-[10px] text-[#849396] mb-1 font-mono uppercase">STATUS & PAYLOAD</p>
-                  <span
-                    className={`inline-block px-2 py-0.5 border text-[10px] font-bold font-mono tracking-wider rounded-none ${
-                      f.status === 'DEPARTED' || f.status === 'IN_AIR'
-                        ? 'border-[#00e5ff] text-[#00e5ff] bg-[#00e5ff]/10'
-                        : f.status === 'DELAYED'
-                        ? 'border-[#ffb4ab] text-[#ffb4ab] bg-[#ffb4ab]/10'
-                        : 'border-[#ffb4ab] text-[#ffb4ab] bg-[#ffb4ab]/5'
-                    }`}
-                  >
-                    [{f.status}]
-                  </span>
-                  <p className="text-[10px] text-[#849396] mt-1.5 font-mono">LOAD: {f.payload || '15.0 TONS'}</p>
                 </div>
               </div>
 
