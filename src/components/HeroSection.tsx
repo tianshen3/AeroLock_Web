@@ -20,7 +20,12 @@ export const HeroSection: React.FC = () => {
       date: departureDate,
       pax,
     });
-    router.push('/search');
+    const params = new URLSearchParams();
+    if (fromOrigin.trim()) params.set('origin', fromOrigin.trim());
+    if (toDestination.trim()) params.set('destination', toDestination.trim());
+
+    const queryString = params.toString();
+    router.push(queryString ? `/flights?${queryString}` : '/flights');
   };
 
   return (

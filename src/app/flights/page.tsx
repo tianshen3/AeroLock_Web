@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useFlights } from '../../hooks/useFlights';
 import { SeatsModal } from '../../components/SeatsModal';
+import { FlightSearchBar } from '../../components/FlightSearchBar';
 
 export default function FlightsPage() {
   const { data: flights, isLoading, isError } = useFlights();
@@ -60,54 +61,75 @@ export default function FlightsPage() {
 
       {/* Data Mapping / Flight Roster */}
       {!isLoading && !isError && safeFlights.length > 0 && (
-        <section className="flex flex-col">
-          {safeFlights.map((flight, index) => (
-            <div
-              key={flight.id ?? index}
-              className="bg-[#122131] border border-[#3b494c] p-4 md:p-6 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors hover:border-[#00e5ff] cursor-default"
-            >
-              {/* Identifier */}
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-[#bac9cc] tracking-[0.3em] font-semibold">
-                  IDENTIFIER
-                </span>
-                <span className="text-lg md:text-xl font-bold text-[#00e5ff]">
-                  FLIGHT: {flight.flightNumber || 'UNKNOWN'}
-                </span>
-              </div>
+        <FlightSearchBar flights={flights}>
+          {(filteredFlights, searchQuery) => {
+            console.log(
+              '[AEROLOCK_DEBUG] Search Query:',
+              searchQuery,
+              '| Live Array:',
+              flights?.length,
+              '| Filtered Result:',
+              filteredFlights.length
+            );
 
-              {/* Route */}
-              <div className="flex flex-col items-start md:items-center">
-                <span className="text-[10px] text-[#bac9cc] mb-1 tracking-[0.3em] font-semibold">
-                  VECTOR
-                </span>
-                <div className="text-[#d4e4fa] font-bold text-lg md:text-xl">
-                  {(flight.origin || 'UNKNOWN').toUpperCase()} ----&gt;&gt; {(flight.destination || 'UNKNOWN').toUpperCase()}
-                </div>
-              </div>
+            return (
+              <section className="flex flex-col">
+                {filteredFlights.length === 0 ? (
+                  <div className="p-4 border border-[#ffb4ab] text-[#ffb4ab] bg-[#122131] font-mono uppercase tracking-widest text-sm rounded-none">
+                    [!] NO VECTOR MATCH FOR: {searchQuery}
+                  </div>
+                ) : (
+                  filteredFlights.map((flight, index) => (
+                    <div
+                      key={flight.id ?? index}
+                      className="bg-[#122131] border border-[#3b494c] p-4 md:p-6 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors hover:border-[#00e5ff] cursor-default"
+                    >
+                      {/* Identifier */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-[#bac9cc] tracking-[0.3em] font-semibold">
+                          IDENTIFIER
+                        </span>
+                        <span className="text-lg md:text-xl font-bold text-[#00e5ff]">
+                          FLIGHT: {flight.flightNumber || 'UNKNOWN'}
+                        </span>
+                      </div>
 
-              {/* Time */}
-              <div className="flex flex-col md:items-end gap-1">
-                <span className="text-[10px] text-[#bac9cc] tracking-[0.3em] font-semibold">
-                  TELEMETRY
-                </span>
-                <div className="text-[#bac9cc] text-xs">
-                  DEP: {formatTime(flight.departureTime)} | ARR: {formatTime(flight.arrivalTime)}
-                </div>
-              </div>
+                      {/* Route */}
+                      <div className="flex flex-col items-start md:items-center">
+                        <span className="text-[10px] text-[#bac9cc] mb-1 tracking-[0.3em] font-semibold">
+                          VECTOR
+                        </span>
+                        <div className="text-[#d4e4fa] font-bold text-lg md:text-xl">
+                          {(flight.origin || 'UNKNOWN').toUpperCase()} ----&gt;&gt; {(flight.destination || 'UNKNOWN').toUpperCase()}
+                        </div>
+                      </div>
 
-              {/* Action Button */}
-              <div>
-                <Link
-                  href={`/flights/${flight.id ?? flight.flightNumber}/seats`}
-                  className="bg-transparent border border-[#3b494c] text-[#00e5ff] px-4 py-2 hover:bg-[#00e5ff]/10 hover:border-[#00e5ff] transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer inline-block no-underline"
-                >
-                  VIEW_SEATS
-                </Link>
-              </div>
-            </div>
-          ))}
-        </section>
+                      {/* Time */}
+                      <div className="flex flex-col md:items-end gap-1">
+                        <span className="text-[10px] text-[#bac9cc] tracking-[0.3em] font-semibold">
+                          TELEMETRY
+                        </span>
+                        <div className="text-[#bac9cc] text-xs">
+                          DEP: {formatTime(flight.departureTime)} | ARR: {formatTime(flight.arrivalTime)}
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <div>
+                        <Link
+                          href={`/flights/${flight.id ?? flight.flightNumber}/seats`}
+                          className="bg-transparent border border-[#3b494c] text-[#00e5ff] px-4 py-2 hover:bg-[#00e5ff]/10 hover:border-[#00e5ff] transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer inline-block no-underline"
+                        >
+                          VIEW_SEATS
+                        </Link>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </section>
+            );
+          }}
+        </FlightSearchBar>
       )}
 
       {/* Empty State */}
