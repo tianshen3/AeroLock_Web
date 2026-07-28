@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useProfile } from '../hooks/useCustomer';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { useFlights } from '../hooks/useFlights';
 import { useTerminal } from '../context/TerminalContext';
 import Providers from './Providers';
@@ -25,6 +26,12 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
 
   // Fetch profile and flight data globally inside QueryClientProvider context on initial load/refresh
   const { data: profile } = useProfile();
+  const {
+    data: userProfile,
+    isLoading: isUserProfileLoading,
+    isError: isUserProfileError,
+    isSuccess: isUserProfileSuccess,
+  } = useUserProfile();
   useFlights();
 
   // Safely check authentication state from localStorage
@@ -65,6 +72,28 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
     : 'OPERATOR';
   const clearance = operator.clearance;
 
+  // Helper to determine operator title text for sidebar header
+  const getSidebarHeaderTitle = () => {
+    if (isUserProfileLoading) {
+      return '[ AUTHENTICATING... ]';
+    }
+
+    const fetchedFirstName =
+      userProfile?.firstName ||
+      userProfile?.user?.firstName ||
+      (userProfile?.name ? userProfile.name.split(' ')[0] : undefined);
+
+    if (isUserProfileError || !userProfile || !fetchedFirstName) {
+      return '[ GUEST_OPERATOR ]';
+    }
+
+    if (isUserProfileSuccess) {
+      return fetchedFirstName;
+    }
+
+    return '[ GUEST_OPERATOR ]';
+  };
+
   // Navigation Items Matrix
   const navItems = [
     { label: 'SEARCH', href: '/', icon: 'search' },
@@ -99,14 +128,15 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          {/* Clickable Header (AEROLOCK_NAV) */}
+          {/* Clickable Header */}
           <Link
             href="/"
             onClick={() => setIsSidebarOpen(false)}
-            className="h-16 flex items-center gap-3 px-4 border-b border-[#3b494c] bg-[#0d1c2d] text-[#00e5ff] font-mono text-xs uppercase tracking-wide shrink-0 no-underline cursor-pointer"
+            className="h-16 flex items-center px-4 border-b border-[#3b494c] bg-[#0d1c2d] text-[#00e5ff] font-mono text-xs uppercase tracking-wide shrink-0 no-underline cursor-pointer"
           >
-            <span className="material-symbols-outlined text-base">radar</span>
-            <span className="font-bold tracking-widest text-xs">AEROLOCK_NAV</span>
+            <span className="font-bold tracking-widest text-xs uppercase">
+              {getSidebarHeaderTitle()}
+            </span>
           </Link>
 
           {/* Navigation Links Matrix */}
