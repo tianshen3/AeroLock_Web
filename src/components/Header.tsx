@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useTerminal } from '../context/TerminalContext';
 
 interface HeaderProps {
@@ -40,15 +41,15 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onToggleSidebar }
           {isSidebarOpen ? 'menu_open' : 'menu'}
         </button>
 
-        <button
-          onClick={() => setActiveTab('DASHBOARD')}
-          className="font-bold text-lg text-[#00e5ff] tracking-tighter cursor-pointer flex items-center gap-2 group border-none bg-transparent p-0"
+        <Link
+          href="/"
+          className="font-bold text-lg text-[#00e5ff] tracking-tighter flex items-center gap-2 cursor-pointer transition-colors hover:text-[#00cbe3] group no-underline"
         >
-          <span className="material-symbols-outlined text-[#00e5ff] group-hover:rotate-90 transition-transform duration-300">
+          <span className="material-symbols-outlined text-inherit group-hover:rotate-90 transition-transform duration-300">
             radar
           </span>
-          AEROLOCK
-        </button>
+          <span>AEROLOCK</span>
+        </Link>
       </div>
 
       {/* Far Right: Controls & Clearance Badge */}
