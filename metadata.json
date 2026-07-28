@@ -1,0 +1,6 @@
+{
+  "name": "AEROLOCK Flight Network",
+  "description": "Tactical flight roster, telemetry vectors, and seat manifest command center built with Kinetic Precision design.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

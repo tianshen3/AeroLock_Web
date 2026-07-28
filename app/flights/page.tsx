@@ -1,8 +1,5 @@
 'use client';
 
-import React from 'react';
-import { FleetView } from '../../src/components/views/FleetView';
+import FlightsPage from '../../src/app/flights/page';
 
-export default function FlightsPage() {
-  return <FleetView />;
-}
+export default FlightsPage;

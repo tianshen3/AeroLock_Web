@@ -251,7 +251,7 @@ export default function LoginPage() {
             <span className="w-2 h-3 bg-[#00e5ff] animate-pulse inline-block" />
           </div>
           <div className="flex gap-3">
-            <span>PORT_8880 // SSL</span>
+            <span>{'PORT_8880 // SSL'}</span>
             <span>LATENCY: 12ms</span>
           </div>
         </div>
