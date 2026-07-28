@@ -5,11 +5,22 @@ import { useFlights } from '../../hooks/useFlights';
 import { SeatsModal } from '../../components/SeatsModal';
 
 export default function FlightsPage() {
-  const { data: flights, isLoading, isError, refetch } = useFlights();
+  const { data: flights, isLoading, isError } = useFlights();
   const [selectedSeatFlight, setSelectedSeatFlight] = useState<string | null>(null);
 
+  const formatTime = (timeStr?: string) => {
+    if (!timeStr) return 'TBD';
+    try {
+      return timeStr.substring(0, 16).replace('T', ' ') + 'Z';
+    } catch {
+      return 'INVALID_DATE';
+    }
+  };
+
+  const safeFlights = Array.isArray(flights) ? flights : [];
+
   return (
-    <div className="w-full space-y-6 font-mono text-[#d4e4fa] p-6 md:p-8 max-w-7xl mx-auto">
+    <div className="w-full min-h-screen bg-[#051424] font-mono text-[#d4e4fa] p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header Section */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-[#3b494c] pb-4">
         <div>
@@ -30,106 +41,68 @@ export default function FlightsPage() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="w-full bg-[#0d1c2d] border border-[#3b494c] p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex gap-1">
-              <div className="w-1 h-4 bg-[#00e5ff] animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-1 h-4 bg-[#00e5ff] animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              <div className="w-1 h-4 bg-[#00e5ff] animate-bounce" style={{ animationDelay: '0.3s' }}></div>
-            </div>
-            <span className="text-xs font-semibold text-[#00e5ff] animate-pulse tracking-[0.3em]">
-              SCANNING_AIRSPACE_FOR_VECTORS...
-            </span>
-          </div>
-          <div className="hidden md:flex gap-8 text-[10px] text-[#849396] font-mono">
-            <span>BUFF_SIZE: 128KB</span>
-            <span>LATENCY: 14MS</span>
-            <span>PEER_ID: node_0x44F</span>
-          </div>
+        <div className="w-full border border-[#3b494c] p-6 text-[#00e5ff] flex justify-center bg-[#0d1c2d]">
+          <span className="text-xs font-semibold animate-pulse tracking-[0.3em]">
+            [SYS] SCANNING_AIRSPACE_FOR_VECTORS...
+          </span>
         </div>
       )}
 
       {/* Error State */}
       {isError && (
-        <div className="w-full bg-[#93000a]/20 border border-[#ffb4ab]/50 p-4 text-[#ffb4ab] font-mono text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="w-2 h-2 bg-[#ffb4ab] animate-ping"></span>
-            <span>[SYS_ERROR]: FAILED_TO_RETRIEVE_FLIGHT_MANIFEST</span>
-          </div>
-          <button
-            onClick={() => refetch()}
-            className="px-4 py-2 border border-[#ffb4ab] text-[#ffb4ab] hover:bg-[#ffb4ab]/10 transition-colors text-xs font-bold cursor-pointer"
-          >
-            RETRY_SCAN
-          </button>
+        <div className="w-full border border-[#ffb4ab] p-6 text-[#ffb4ab] flex justify-center bg-[#93000a]/20">
+          <span className="text-xs font-semibold tracking-[0.3em]">
+            [SYS_ERROR]: FAILED_TO_RETRIEVE_FLIGHT_MANIFEST
+          </span>
         </div>
       )}
 
       {/* Data Mapping / Flight Roster */}
-      {!isLoading && !isError && flights && flights.length > 0 && (
-        <section className="flex flex-col gap-4">
-          {flights.map((flight) => (
+      {!isLoading && !isError && safeFlights.length > 0 && (
+        <section className="flex flex-col">
+          {safeFlights.map((flight, index) => (
             <div
-              key={flight.id}
-              className="bg-[#122131] border border-[#3b494c] p-4 md:p-6 mb-4 flex flex-col justify-between gap-4 transition-colors hover:border-[#00e5ff] cursor-default group relative overflow-hidden"
+              key={flight.id ?? index}
+              className="bg-[#122131] border border-[#3b494c] p-4 md:p-6 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors hover:border-[#00e5ff] cursor-default"
             >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-                {/* Identifier */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] text-[#bac9cc] tracking-[0.3em] font-semibold">
-                    IDENTIFIER
-                  </span>
-                  <span className="text-lg md:text-xl font-bold text-[#00e5ff]">
-                    FLIGHT: {flight.flightNumber}
-                  </span>
-                </div>
+              {/* Identifier */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-[#bac9cc] tracking-[0.3em] font-semibold">
+                  IDENTIFIER
+                </span>
+                <span className="text-lg md:text-xl font-bold text-[#00e5ff]">
+                  FLIGHT: {flight.flightNumber || 'UNKNOWN'}
+                </span>
+              </div>
 
-                {/* Route */}
-                <div className="flex flex-col items-start md:items-center">
-                  <span className="text-[10px] text-[#bac9cc] mb-1 tracking-[0.3em] font-semibold">
-                    VECTOR
-                  </span>
-                  <div className="flex items-center gap-3 text-lg md:text-xl font-bold text-[#d4e4fa]">
-                    <span>{flight.origin.toUpperCase()}</span>
-                    <span className="text-[#00e5ff] text-base opacity-70 tracking-[-0.2em]">
-                      ----&gt;&gt;
-                    </span>
-                    <span>{flight.destination.toUpperCase()}</span>
-                  </div>
-                </div>
-
-                {/* Time */}
-                <div className="flex flex-col md:items-end gap-1">
-                  <span className="text-[10px] text-[#bac9cc] tracking-[0.3em] font-semibold">
-                    TELEMETRY
-                  </span>
-                  <div className="text-[#bac9cc] text-xs font-mono">
-                    <span className="text-[#849396]">DEP:</span>{' '}
-                    {new Date(flight.departureTime).toLocaleString()} |{' '}
-                    <span className="text-[#849396]">ARR:</span>{' '}
-                    {new Date(flight.arrivalTime).toLocaleString()}
-                  </div>
-                </div>
-
-                {/* Action Button */}
-                <div>
-                  <button
-                    onClick={() => setSelectedSeatFlight(flight.flightNumber)}
-                    className="inline-block text-center w-full md:w-auto bg-transparent border border-[#3b494c] text-[#00e5ff] px-4 py-2 hover:bg-[#00e5ff]/10 hover:border-[#00e5ff] transition-colors text-xs font-bold cursor-pointer"
-                  >
-                    VIEW_SEATS
-                  </button>
+              {/* Route */}
+              <div className="flex flex-col items-start md:items-center">
+                <span className="text-[10px] text-[#bac9cc] mb-1 tracking-[0.3em] font-semibold">
+                  VECTOR
+                </span>
+                <div className="text-[#d4e4fa] font-bold text-lg md:text-xl">
+                  {(flight.origin || 'UNKNOWN').toUpperCase()} ----&gt;&gt; {(flight.destination || 'UNKNOWN').toUpperCase()}
                 </div>
               </div>
 
-              {/* Technical Telemetry Metadata */}
-              <div className="mt-2 pt-3 border-t border-[#3b494c]/40 flex flex-wrap justify-between text-[10px] font-mono text-[#849396]">
-                <div className="flex gap-4">
-                  <span>STATUS: {flight.status || 'EN_ROUTE'}</span>
-                  <span>CRAFT: {flight.craft || 'BOEING_787_D'}</span>
-                  <span>LOAD: {flight.load || '84%'}</span>
+              {/* Time */}
+              <div className="flex flex-col md:items-end gap-1">
+                <span className="text-[10px] text-[#bac9cc] tracking-[0.3em] font-semibold">
+                  TELEMETRY
+                </span>
+                <div className="text-[#bac9cc] text-xs">
+                  DEP: {formatTime(flight.departureTime)} | ARR: {formatTime(flight.arrivalTime)}
                 </div>
-                <span className="text-[#00e5ff]/40">TIMESTAMP: 08:42:12 UTC</span>
+              </div>
+
+              {/* Action Button */}
+              <div>
+                <button
+                  onClick={() => setSelectedSeatFlight(flight.flightNumber || String(flight.id))}
+                  className="bg-transparent border border-[#3b494c] text-[#00e5ff] px-4 py-2 hover:bg-[#00e5ff]/10 hover:border-[#00e5ff] transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer"
+                >
+                  VIEW_SEATS
+                </button>
               </div>
             </div>
           ))}
@@ -137,7 +110,7 @@ export default function FlightsPage() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !isError && flights && flights.length === 0 && (
+      {!isLoading && !isError && safeFlights.length === 0 && (
         <div className="w-full bg-[#122131] border border-[#3b494c] p-8 text-center text-[#bac9cc] text-xs">
           NO_FLIGHT_MANIFESTS_FOUND_IN_AIRSPACE
         </div>

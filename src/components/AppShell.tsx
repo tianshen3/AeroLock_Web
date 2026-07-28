@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useProfile } from '../hooks/useCustomer';
+import { useFlights } from '../hooks/useFlights';
 import Providers from './Providers';
 import { Header } from './Header';
 import { Footer } from './Footer';
@@ -20,8 +21,9 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
 
   const pathname = usePathname();
 
-  // Fetch profile data safely inside QueryClientProvider context
+  // Fetch profile and flight data globally inside QueryClientProvider context on initial load/refresh
   const { data: profile } = useProfile();
+  useFlights();
 
   // Safely check authentication state from localStorage
   useEffect(() => {
