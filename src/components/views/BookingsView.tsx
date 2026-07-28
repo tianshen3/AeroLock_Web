@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useBookings, type Booking, type BookingStatus } from '../../hooks/useBookings';
 import { useCancelBooking, useSeat } from '../../hooks/useSeats';
-import { useFlights } from '../../hooks/useFlights';
+import { useFlights, type Flight } from '../../hooks/useFlights';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { getResolvedFullName } from '../../utils/userUtils';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -44,7 +44,7 @@ interface BookingRowProps {
   onCancel: (id: string) => void;
   cancelling: Set<string>;
   optimisticCancelled: Set<string>;
-  flights: any[];
+  flights: Flight[];
   passengerName: string;
 }
 

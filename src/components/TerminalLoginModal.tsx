@@ -31,10 +31,63 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
   // Authentication mutation for existing operator login
   const loginMutation = useLogin({
     onSuccess: (data) => {
-      const name = data.user?.name || email.split('@')[0].toUpperCase() || 'OPERATOR';
-      onSetClearance(selectedLevel, name);
+      const rawToken =
+        (data as Record<string, unknown>).adminToken ||
+        data.token ||
+        data.access_token ||
+        data.jwt ||
+        data.accessToken;
+      const extractedToken = typeof rawToken === 'string' ? rawToken : String(rawToken || '');
+
+      const isDataAdmin =
+        (data as Record<string, unknown>).role === 'ADMIN' ||
+        (data.user as Record<string, unknown> | undefined)?.role === 'ADMIN';
+
+      const name =
+        (data as Record<string, unknown>).name ||
+        data.user?.name ||
+        email.split('@')[0].toUpperCase() ||
+        'OPERATOR';
+
       setErrorMessage(null);
-      onClose();
+
+      if (selectedLevel === 'L2_COMMAND' || isDataAdmin) {
+        if (typeof window !== 'undefined') {
+          if (extractedToken) {
+            localStorage.setItem('adminToken', extractedToken);
+            localStorage.setItem('accessToken', extractedToken);
+            localStorage.setItem('auth_token', extractedToken);
+            localStorage.setItem('token', extractedToken);
+          }
+          localStorage.setItem('clearance', 'L2_COMMAND');
+          localStorage.setItem(
+            'user',
+            JSON.stringify({ name: String(name), role: 'ADMIN', clearance: 'L2_COMMAND', email })
+          );
+          window.dispatchEvent(new Event('storage'));
+        }
+        onSetClearance('L2_COMMAND', String(name));
+        onClose();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/command';
+        }
+      } else {
+        if (typeof window !== 'undefined') {
+          if (extractedToken) {
+            localStorage.setItem('accessToken', extractedToken);
+            localStorage.setItem('auth_token', extractedToken);
+            localStorage.setItem('token', extractedToken);
+          }
+          localStorage.setItem('clearance', 'L1_CIVILIAN');
+          localStorage.setItem(
+            'user',
+            JSON.stringify({ name: String(name), role: 'CUSTOMER', clearance: 'L1_CIVILIAN', email })
+          );
+          window.dispatchEvent(new Event('storage'));
+        }
+        onSetClearance('L1_CIVILIAN', String(name));
+        onClose();
+      }
     },
     onError: (err) => {
       setErrorMessage(err.message || 'AUTHENTICATION_FAILURE: INVALID_CREDENTIALS_OR_SOCKET_DISCONNECT');

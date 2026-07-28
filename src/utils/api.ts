@@ -15,7 +15,11 @@ api.interceptors.request.use(
   (config) => {
     // Next.js safety check: Ensure we are in the browser before checking Local Storage
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem(TOKEN_STORAGE_KEY) || localStorage.getItem('token');
+      const token =
+        localStorage.getItem('adminToken') ||
+        localStorage.getItem(TOKEN_STORAGE_KEY) ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('accessToken');
       
       if (token) {
         // Stamp the token onto the Authorization header

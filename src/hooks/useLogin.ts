@@ -48,7 +48,14 @@ export const useLogin = (options?: UseLoginOptions) => {
 
     onSuccess: (data, variables, context) => {
       // 1. Save returned JWT token to local storage and cookie helper
-      const token = data.token || data.access_token || data.jwt || data.accessToken;
+      const rawToken =
+        (data as Record<string, unknown>).adminToken ||
+        data.token ||
+        data.access_token ||
+        data.jwt ||
+        data.accessToken;
+      const token = typeof rawToken === 'string' ? rawToken : String(rawToken || '');
+
       if (token) {
         setAuthToken(token);
         localStorage.setItem('accessToken', token);
@@ -57,10 +64,23 @@ export const useLogin = (options?: UseLoginOptions) => {
       }
 
       // 2. Save and update user state
+      const roleFromData =
+        (data as Record<string, unknown>).role ||
+        (data.user as Record<string, unknown> | undefined)?.role;
+      const isAdmin = String(roleFromData).toUpperCase() === 'ADMIN';
+
+      if (isAdmin) {
+        if (token) {
+          localStorage.setItem('adminToken', token);
+        }
+        localStorage.setItem('clearance', 'L2_COMMAND');
+      }
+
       const userObj: User = data.user || {
-        id: variables.email,
-        email: variables.email,
-        name: variables.email.split('@')[0],
+        id: String((data as Record<string, unknown>).id || variables.email),
+        email: (data as Record<string, unknown>).email as string || variables.email,
+        name: (data as Record<string, unknown>).name as string || variables.email.split('@')[0],
+        role: roleFromData ? String(roleFromData) : (isAdmin ? 'ADMIN' : 'CUSTOMER'),
       };
 
       if (userObj) {

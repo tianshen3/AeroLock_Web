@@ -32,7 +32,7 @@ export interface Booking {
   };
   price?: string | number;
   fare?: string | number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export type BookingsList = Booking[];

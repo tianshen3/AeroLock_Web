@@ -68,7 +68,6 @@ const fetchUserProfile = async (): Promise<UserProfilePayload> => {
             lastName: data.lastName || data.user?.lastName || existing.lastName,
           };
           localStorage.setItem('user', JSON.stringify(updatedUser));
-          window.dispatchEvent(new Event('storage'));
         } catch {
           // ignore
         }
@@ -76,7 +75,7 @@ const fetchUserProfile = async (): Promise<UserProfilePayload> => {
       return data;
     }
   } catch (err) {
-    console.warn('[useUserProfile]: Remote endpoint unreachable, falling back to local user storage.', err);
+    console.warn('[useUserProfile]: Remote endpoint error, falling back to local user storage.', err);
   }
 
   // Fallback if remote API is offline or returns non-200, but local user data exists
@@ -100,10 +99,15 @@ const fetchUserProfile = async (): Promise<UserProfilePayload> => {
  */
 export const useUserProfile = () => {
   const token = getAuthToken();
+  const isAdmin = typeof window !== 'undefined' && (
+    localStorage.getItem('clearance') === 'L2_COMMAND' ||
+    !!localStorage.getItem('adminToken')
+  );
 
   return useQuery<UserProfilePayload, Error>({
     queryKey: ['userProfile', token || 'guest'],
     queryFn: fetchUserProfile,
+    enabled: !isAdmin,
     staleTime: token ? 1000 * 60 * 30 : 0, // 30 minutes if token exists, 0 for guest
     retry: 1,
   });

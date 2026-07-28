@@ -87,9 +87,15 @@ const fetchAuthenticated = async <T>(endpoint: string): Promise<T> => {
  */
 export const useProfile = () => {
   const token = getAccessToken();
+  const isAdmin = typeof window !== 'undefined' && (
+    localStorage.getItem('clearance') === 'L2_COMMAND' ||
+    !!localStorage.getItem('adminToken')
+  );
+
   return useQuery<Profile, Error>({
     queryKey: ['profile', token || 'guest'],
     queryFn: () => fetchAuthenticated<Profile>('/auth/profile'),
+    enabled: !isAdmin,
     staleTime: token ? 1000 * 60 * 30 : 0, // 30 min if authenticated, 0 for guest
     retry: 1,
   });

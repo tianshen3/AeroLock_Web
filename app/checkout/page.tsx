@@ -155,7 +155,7 @@ function CheckoutContent() {
             window.location.href = '/dashboard';
           }
         },
-        onError: (err: any) => {
+        onError: (err: Error) => {
           console.error('[AEROLOCK_API] CONFIRM_ERROR received:', err);
           // Show the clean API error message in the alert instead of faking success
           setErrorMessage(err?.message || 'Failed to confirm booking.');
@@ -163,12 +163,6 @@ function CheckoutContent() {
         },
       }
     );
-  };
-
-  const handleReset = () => {
-    setTransferState({ status: 'IDLE', progress: 0 });
-    setConfirmResult(null);
-    setErrorMessage(null);
   };
 
   return (

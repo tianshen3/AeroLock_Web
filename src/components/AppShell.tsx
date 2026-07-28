@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useProfile } from '../hooks/useCustomer';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { useFlights } from '../hooks/useFlights';
 import { useTerminal } from '../context/TerminalContext';
 import { getResolvedFullName, getStoredUserObject } from '../utils/userUtils';
 import Providers from './Providers';
@@ -18,21 +16,21 @@ export interface AppShellProps {
 }
 
 const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
+  const pathname = usePathname();
+  const router = useRouter();
+  const isCommandRoute = pathname === '/command' || pathname?.startsWith('/command');
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
 
-  const pathname = usePathname();
-  const router = useRouter();
   const { operator, handleLogout: terminalLogout, setIsLoginOpen } = useTerminal();
 
-  // Fetch profile and flight data globally inside QueryClientProvider context on initial load/refresh
-  const { data: profile } = useProfile();
+  // Fetch user profile data globally inside QueryClientProvider context ONLY for civilian routes
   const {
     data: userProfile,
     isLoading: isUserProfileLoading,
   } = useUserProfile();
-  useFlights();
 
   // Safely check authentication state and handle route protection redirect
   useEffect(() => {
@@ -81,9 +79,6 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
     const nameFromUserProfile = getResolvedFullName(userProfile);
     if (nameFromUserProfile) return nameFromUserProfile.toUpperCase();
 
-    const nameFromCustomerProfile = getResolvedFullName(profile);
-    if (nameFromCustomerProfile) return nameFromCustomerProfile.toUpperCase();
-
     const storedUser = getStoredUserObject();
     const nameFromStored = getResolvedFullName(storedUser);
     if (nameFromStored && nameFromStored !== 'OPERATOR_01') {
@@ -115,6 +110,10 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
       ? [{ label: 'BOOKINGS', href: '/dashboard', icon: 'airplane_ticket' }]
       : []),
   ];
+
+  if (isCommandRoute) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen bg-[#051424] text-[#d4e4fa] font-mono selection:bg-[#00e5ff] selection:text-[#051424] flex flex-col relative rounded-none">
