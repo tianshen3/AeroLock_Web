@@ -273,7 +273,7 @@ export default function CommandPage() {
           }}
           vectorCount={flightsData ? flightsData.length : vectors.length}
           overrideCount={bookingsData ? bookingsData.length : overrides.length}
-          personnelCount={usersData ? usersData.length : personnel.length + 143}
+          personnelCount={usersData ? usersData.filter((u) => u.role !== 'ADMIN').length : personnel.length}
           waitlistCount={statsData ? statsData.waitlist.total : waitlist.length}
           logCount={logs.length}
           operatorName={operatorName}

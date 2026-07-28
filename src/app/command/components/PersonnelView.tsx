@@ -14,7 +14,6 @@ interface PersonnelViewProps {
 export const PersonnelView: React.FC<PersonnelViewProps> = ({
   personnel,
   adminUsers,
-  stats,
   isLoading,
   playBeep,
 }) => {
@@ -24,74 +23,45 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
   // Convert live admin users from GET /users to personnel view format if available
   const displayPersonnel: PersonnelRecord[] = React.useMemo(() => {
     if (adminUsers && adminUsers.length > 0) {
-      return adminUsers.map((u) => ({
-        id: String(u.id),
-        name: u.name.toUpperCase(),
-        role: u.role === 'ADMIN' ? 'TACTICAL ADMIN' : `CUSTOMER (CLV: ${u.clvScore})`,
-        location: u.role === 'ADMIN' ? 'COMMAND-HQ' : 'CIVILIAN SECTOR',
-        clearance: u.role === 'ADMIN' ? 'LEVEL 5 - COMMAND' : 'LEVEL 1 - CIVILIAN',
-        status: u.isActive ? 'ACTIVE' : 'OFFLINE',
-      }));
+      return adminUsers
+        .filter((u) => u.role !== 'ADMIN') // Single admin hidden from personnel list
+        .map((u) => ({
+          id: String(u.id),
+          name: u.name.toUpperCase(),
+          role: `CUSTOMER (CLV: ${u.clvScore})`,
+          location: '',
+          clearance: '',
+          status: u.isActive ? 'ACTIVE' : 'OFFLINE',
+        }));
     }
-    return personnel;
+    return personnel
+      .filter((p) => p.role !== 'CHIEF TACTICAL OPERATOR' && !p.clearance.includes('COMMAND'))
+      .map((p) => ({
+        ...p,
+        location: p.location === 'CIVILIAN SECTOR' ? '' : p.location,
+        clearance: p.clearance === 'LEVEL 1 - CIVILIAN' ? '' : p.clearance,
+      }));
   }, [adminUsers, personnel]);
 
   const filtered = displayPersonnel.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.clearance.toLowerCase().includes(searchTerm.toLowerCase());
+      (p.location ? p.location.toLowerCase().includes(searchTerm.toLowerCase()) : false) ||
+      (p.clearance ? p.clearance.toLowerCase().includes(searchTerm.toLowerCase()) : false);
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   return (
     <div className="space-y-6 font-mono">
-      {/* 4-PANEL TELEMETRY OVERVIEW GRID FROM GET /admin/stats */}
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 border-2 border-[#ffb4ab] bg-[#0d1c2d] rounded-none">
-            <p className="text-[10px] text-[#849396] font-bold uppercase tracking-widest">PERSONNEL / USERS</p>
-            <p className="text-2xl font-bold text-[#ffb4ab] mt-1">{stats.users.total}</p>
-            <p className="text-[10px] text-[#849396] mt-1">
-              ACTIVE: <span className="text-[#00e5ff]">{stats.users.active}</span> | ADM: <span className="text-[#ffb4ab]">{stats.users.admins}</span>
-            </p>
-          </div>
-
-          <div className="p-4 border-2 border-[#ffb4ab] bg-[#0d1c2d] rounded-none">
-            <p className="text-[10px] text-[#849396] font-bold uppercase tracking-widest">FLIGHT VECTORS</p>
-            <p className="text-2xl font-bold text-[#ffb4ab] mt-1">{stats.flights.total}</p>
-            <p className="text-[10px] text-[#849396] mt-1">
-              SCHEDULED NETWORK MANIFEST
-            </p>
-          </div>
-
-          <div className="p-4 border-2 border-[#ffb4ab] bg-[#0d1c2d] rounded-none">
-            <p className="text-[10px] text-[#849396] font-bold uppercase tracking-widest">RESERVATIONS / BOOKINGS</p>
-            <p className="text-2xl font-bold text-[#ffb4ab] mt-1">{stats.bookings.total}</p>
-            <p className="text-[10px] text-[#849396] mt-1">
-              CONF: <span className="text-[#00e5ff]">{stats.bookings.confirmed}</span> | LOCK: <span className="text-[#ffb4ab]">{stats.bookings.locked}</span>
-            </p>
-          </div>
-
-          <div className="p-4 border-2 border-[#ffb4ab] bg-[#0d1c2d] rounded-none">
-            <p className="text-[10px] text-[#849396] font-bold uppercase tracking-widest">WAITLIST CANDIDATES</p>
-            <p className="text-2xl font-bold text-[#ffb4ab] mt-1">{stats.waitlist.total}</p>
-            <p className="text-[10px] text-[#849396] mt-1">
-              AUTO-REASSIGNMENT ACTIVE
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* CONTROLS BAR */}
       <div className="panel-bg border-technical p-4 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between rounded-none">
         <div className="flex items-center gap-2 flex-1 max-w-md bg-[#051424] border border-[#3b494c] px-3 py-2 rounded-none">
           <Search className="w-4 h-4 text-[#849396]" />
           <input
             type="text"
-            placeholder="SEARCH PERSONNEL BY NAME, ROLE, SECTOR..."
+            placeholder="SEARCH PERSONNEL BY NAME OR ROLE..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="bg-transparent border-none text-xs text-[#d4e4fa] focus:outline-none w-full font-mono placeholder-[#849396] uppercase"
@@ -141,14 +111,20 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm text-[#d4e4fa] font-mono uppercase">{p.name}</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 border border-[#ffb4ab]/60 text-[#ffb4ab] bg-[#0d1c2d] rounded-none">
-                    {p.clearance}
-                  </span>
+                  {p.clearance && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 border border-[#ffb4ab]/60 text-[#ffb4ab] bg-[#0d1c2d] rounded-none">
+                      {p.clearance}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-[#849396] flex items-center gap-2 font-mono uppercase">
                   <span>{p.role}</span>
-                  <span>::</span>
-                  <span className="text-[#d4e4fa]/80">{p.location}</span>
+                  {p.location && (
+                    <>
+                      <span>::</span>
+                      <span className="text-[#d4e4fa]/80">{p.location}</span>
+                    </>
+                  )}
                 </p>
               </div>
 
