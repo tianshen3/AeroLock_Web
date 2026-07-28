@@ -46,10 +46,12 @@ export default function SeatMatrixPage() {
     lockMutation.mutate(
       { flightId: parsedFlightId, seatId: targetSeatId },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
+          const bookingId = data?.bookingId ?? data?.id;
           setSuccessMessage(`[SYS] LOCK_SEQUENCE_SUCCESS: SEAT ${selectedSeat.seatNumber} CONFIRMED`);
           setSelectedSeat(null);
-          router.push('/checkout?flightId=' + flightId + '&seatId=' + targetSeatId);
+          const bookingQuery = bookingId ? `&bookingId=${bookingId}` : '';
+          router.push(`/checkout?flightId=${flightId}&seatId=${targetSeatId}${bookingQuery}`);
         },
         onError: (err: Error) => {
           console.error('Lock sequence error:', err);
