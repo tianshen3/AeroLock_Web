@@ -39,15 +39,17 @@ export default function SeatMatrixPage() {
       return;
     }
 
-    // Authenticated: Initiate lock mutation
+    // Authenticated: Initiate lock mutation and route to checkout on success
     const parsedFlightId = !isNaN(Number(flightId)) ? Number(flightId) : flightId;
+    const targetSeatId = selectedSeat.id;
 
     lockMutation.mutate(
-      { flightId: parsedFlightId, seatId: selectedSeat.id },
+      { flightId: parsedFlightId, seatId: targetSeatId },
       {
         onSuccess: () => {
           setSuccessMessage(`[SYS] LOCK_SEQUENCE_SUCCESS: SEAT ${selectedSeat.seatNumber} CONFIRMED`);
           setSelectedSeat(null);
+          router.push('/checkout?flightId=' + flightId + '&seatId=' + targetSeatId);
         },
         onError: (err: Error) => {
           console.error('Lock sequence error:', err);
@@ -267,7 +269,7 @@ export default function SeatMatrixPage() {
               >
                 {lockMutation.isPending
                   ? '[ TRANSMITTING_LOCK_CODE... ]'
-                  : 'INITIATE_LOCK_SEQUENCE'}
+                  : 'CONFIRM BOOKING'}
               </button>
               <p className="text-[10px] text-[#bac9cc] mt-2 text-center tracking-widest uppercase">
                 Authorization Required Level_02

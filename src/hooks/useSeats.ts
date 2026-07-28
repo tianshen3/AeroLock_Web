@@ -37,6 +37,8 @@ export function useSeats(flightId: string) {
       }
     },
     enabled: !!flightId,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 }
 
