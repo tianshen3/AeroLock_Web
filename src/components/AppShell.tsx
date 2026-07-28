@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useProfile } from '../hooks/useCustomer';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useFlights } from '../hooks/useFlights';
@@ -23,6 +23,7 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
 
   const pathname = usePathname();
+  const router = useRouter();
   const { operator, handleLogout: terminalLogout, setIsLoginOpen } = useTerminal();
 
   // Fetch profile and flight data globally inside QueryClientProvider context on initial load/refresh
@@ -33,21 +34,32 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
   } = useUserProfile();
   useFlights();
 
-  // Safely check authentication state from localStorage
+  // Safely check authentication state and handle route protection redirect
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuthAndRedirect = () => {
       if (typeof window !== 'undefined') {
         const token =
           localStorage.getItem('accessToken') ||
           localStorage.getItem('auth_token') ||
           localStorage.getItem('token');
-        setIsAuthenticated(!!token);
+        const loggedIn = !!token;
+        setIsAuthenticated(loggedIn);
+
+        const PROTECTED_ROUTES = ['/dashboard', '/bookings', '/checkout'];
+        if (!loggedIn) {
+          const isProtected = PROTECTED_ROUTES.some(
+            (route) => pathname === route || pathname.startsWith(route + '/')
+          );
+          if (isProtected) {
+            router.push(`/login?returnUrl=${encodeURIComponent(pathname)}`);
+          }
+        }
       }
     };
 
-    checkAuth();
+    checkAuthAndRedirect();
 
-    const handleStorage = () => checkAuth();
+    const handleStorage = () => checkAuthAndRedirect();
     window.addEventListener('storage', handleStorage);
     window.addEventListener('focus', handleStorage);
 
@@ -55,12 +67,13 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('focus', handleStorage);
     };
-  }, []);
+  }, [pathname, router]);
 
   const handleLogout = () => {
     terminalLogout();
     setIsAuthenticated(false);
     setIsProfileOpen(false);
+    router.push('/');
   };
 
   // Helper to determine operator title text for sidebar header

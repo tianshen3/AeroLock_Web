@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTerminal } from '../context/TerminalContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { getResolvedFullName, getStoredUserObject } from '../utils/userUtils';
@@ -12,6 +13,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onToggleSidebar }) => {
+  const router = useRouter();
   const { setActiveTab, setIsLoginOpen, operator, metrics, handleLogout } = useTerminal();
   const { data: userProfile } = useUserProfile();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -141,6 +143,7 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onToggleSidebar }
                   onClick={() => {
                     setIsUserMenuOpen(false);
                     handleLogout();
+                    router.push('/');
                   }}
                   className="w-full border border-red-500/60 bg-red-950/40 text-red-400 hover:bg-red-600 hover:text-white p-2 font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer text-xs"
                 >
