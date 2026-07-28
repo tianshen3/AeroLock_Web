@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useLogin } from '../../hooks/useLogin';
-
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export type ClearanceTier = 'L1_CIVILIAN' | 'L2_COMMAND';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams?.get('returnUrl') || searchParams?.get('redirect') || '/';
+
   const [email, setEmail] = useState('operator@aerolock.com');
   const [password, setPassword] = useState('');
   const [tier, setTier] = useState<ClearanceTier>('L1_CIVILIAN');
@@ -17,7 +19,6 @@ export default function LoginPage() {
 
   const loginMutation = useLogin({
     onSuccess: (data) => {
-      // Extract JWT token from response object
       const token =
         data.accessToken || data.token || data.access_token || data.jwt;
 
@@ -32,11 +33,10 @@ export default function LoginPage() {
 
       setErrorMessage(null);
 
-      // Safe navigation to /dashboard
       try {
-        router.push('/dashboard');
+        router.push(returnUrl);
       } catch {
-        window.location.href = '/dashboard';
+        window.location.href = returnUrl;
       }
     },
     onError: (err) => {
@@ -59,7 +59,6 @@ export default function LoginPage() {
 
     setErrorMessage(null);
 
-    // Trigger login mutation
     loginMutation.mutate({
       email: email.trim(),
       password,
@@ -101,7 +100,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Error Alert Display (Electric Red #ffb4ab) */}
+        {/* Error Alert Display */}
         {(errorMessage || loginMutation.isError) && (
           <div className="p-3 border-2 border-[#ffb4ab] bg-[#ffb4ab]/10 text-[#ffb4ab] text-xs font-mono font-bold uppercase tracking-wider rounded-none flex items-center gap-2">
             <span className="material-symbols-outlined text-sm shrink-0">
@@ -257,5 +256,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#051424] text-[#00e5ff] flex items-center justify-center font-mono text-xs">
+        [SYS] INITIALIZING_AUTHENTICATION_GATEWAY...
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

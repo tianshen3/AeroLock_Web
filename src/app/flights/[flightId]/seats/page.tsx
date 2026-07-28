@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSeats, useLockSeat, Seat } from '@/src/hooks/useSeats';
 
 export default function SeatMatrixPage() {
   const params = useParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const rawFlightId = (params?.flightId || params?.id) as string;
   const flightId = rawFlightId || 'AI101';
 
@@ -25,6 +27,19 @@ export default function SeatMatrixPage() {
   const handleLockSequence = () => {
     if (!selectedSeat || lockMutation.isPending) return;
 
+    // Check if user is logged in
+    const token = typeof window !== 'undefined'
+      ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('accessToken'))
+      : null;
+
+    if (!token) {
+      // Unauthenticated: Bypass TanStack mutation completely and redirect to login
+      const encodedPath = encodeURIComponent(pathname);
+      router.push('/login?returnUrl=' + encodedPath);
+      return;
+    }
+
+    // Authenticated: Initiate lock mutation
     const parsedFlightId = !isNaN(Number(flightId)) ? Number(flightId) : flightId;
 
     lockMutation.mutate(
