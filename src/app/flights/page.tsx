@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useFlights } from '../../hooks/useFlights';
 import { SeatsModal } from '../../components/SeatsModal';
 
@@ -97,12 +98,12 @@ export default function FlightsPage() {
 
               {/* Action Button */}
               <div>
-                <button
-                  onClick={() => setSelectedSeatFlight(flight.flightNumber || String(flight.id))}
-                  className="bg-transparent border border-[#3b494c] text-[#00e5ff] px-4 py-2 hover:bg-[#00e5ff]/10 hover:border-[#00e5ff] transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer"
+                <Link
+                  href={`/flights/${flight.id ?? flight.flightNumber}/seats`}
+                  className="bg-transparent border border-[#3b494c] text-[#00e5ff] px-4 py-2 hover:bg-[#00e5ff]/10 hover:border-[#00e5ff] transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer inline-block no-underline"
                 >
                   VIEW_SEATS
-                </button>
+                </Link>
               </div>
             </div>
           ))}
