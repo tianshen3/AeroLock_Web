@@ -81,3 +81,24 @@ export interface SystemMetrics {
   authScope: string;
   systemStatus: 'NOMINAL' | 'ELEVATED' | 'DEFCON_2';
 }
+
+export interface ManifestData {
+  passengerName: string;
+  flightId: string;
+  allocatedSeat: string;
+  status: 'LOCKED' | 'PENDING' | 'AUTHORIZED' | 'FAILED';
+  amount: string;
+  transitRoute: string;
+  departureTime: string;
+  flightClass: string;
+}
+
+export type GatewayType = 'PAYPAL_EXPRESS';
+
+export interface TransferState {
+  status: 'IDLE' | 'PROCESSING' | 'AUTHENTICATING' | 'PAYPAL_SYNC' | 'COMPLETED' | 'ERROR';
+  progress: number;
+  transactionHash?: string;
+  timestamp?: string;
+}
+

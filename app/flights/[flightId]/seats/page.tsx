@@ -53,6 +53,19 @@ export default function SeatMatrixPage() {
         },
         onError: (err: Error) => {
           console.error('Lock sequence error:', err);
+          if (
+            err.message?.includes('401') ||
+            err.message?.includes('Unauthorized') ||
+            err.message?.includes('login required')
+          ) {
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('token');
+              localStorage.removeItem('accessToken');
+            }
+            const encodedPath = encodeURIComponent(pathname);
+            router.push('/login?returnUrl=' + encodedPath);
+          }
         },
       }
     );

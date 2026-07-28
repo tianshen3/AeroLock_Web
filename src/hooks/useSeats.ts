@@ -52,9 +52,12 @@ export function useLockSeat() {
         typeof window !== 'undefined'
           ? localStorage.getItem('auth_token') ||
             localStorage.getItem('token') ||
-            localStorage.getItem('accessToken') ||
-            'OPERATOR_BEARER_TOKEN_99021'
-          : 'OPERATOR_BEARER_TOKEN_99021';
+            localStorage.getItem('accessToken')
+          : null;
+
+      if (!accessToken) {
+        throw new Error('401 Unauthorized: Session invalid or login required.');
+      }
 
       const res = await fetch(`${baseUrl}/bookings/locks`, {
         method: 'POST',
@@ -68,6 +71,9 @@ export function useLockSeat() {
       if (!res.ok) {
         const errText = await res.text();
         console.error('[SYS] LOCK_SEQUENCE_FAILURE:', errText);
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('401 Unauthorized: Session invalid or login required.');
+        }
         throw new Error(`Failed to lock seat: ${res.statusText}`);
       }
 
@@ -79,3 +85,48 @@ export function useLockSeat() {
     },
   });
 }
+
+export function useConfirmBooking() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ bookingId }: { bookingId: number | string }) => {
+      const baseUrl = getApiBaseUrl();
+      const accessToken =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('auth_token') ||
+            localStorage.getItem('token') ||
+            localStorage.getItem('accessToken')
+          : null;
+
+      if (!accessToken) {
+        throw new Error('401 Unauthorized: Session invalid or login required.');
+      }
+
+      const res = await fetch(`${baseUrl}/bookings/confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ bookingId: Number(bookingId) }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('[SYS] CONFIRM_SEQUENCE_FAILURE:', errText);
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('401 Unauthorized: Session invalid or login required.');
+        }
+        throw new Error(`Failed to confirm booking: ${res.statusText}`);
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seats'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+}
+
