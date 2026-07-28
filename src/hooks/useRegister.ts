@@ -29,31 +29,15 @@ export const useRegister = (options?: UseRegisterOptions) => {
   return useMutation<LoginResponse, Error, RegisterCredentials>({
     ...mutationOptions,
     mutationFn: async (credentials: RegisterCredentials) => {
-      try {
-        // Sends POST request to local backend endpoint /auth/register with expected payload
-        const response = await api.post<LoginResponse>('/auth/register', {
-          name: credentials.name,
-          email: credentials.email,
-          password: credentials.password,
-        });
-        return response.data;
-      } catch (err: unknown) {
-        // Fallback simulation for offline/preview mode if backend endpoint is unavailable
-        console.warn('Backend /auth/register unavailable, initializing session credentials locally', err);
-        const mockUser: User = {
-          id: `civ-${Date.now()}`,
-          name: credentials.name,
-          email: credentials.email,
-          role: 'L1_CIVILIAN',
-        };
-        const mockToken = `aerolock_jwt_${Date.now()}_${btoa(credentials.email)}`;
-        return {
-          token: mockToken,
-          user: mockUser,
-          message: 'CIVILIAN_REGISTERED_SUCCESSFULLY',
-        };
-      }
+      // Sends POST request to local backend endpoint /auth/register with expected payload
+      const response = await api.post<LoginResponse>('/auth/register', {
+        name: credentials.name,
+        email: credentials.email,
+        password: credentials.password,
+      });
+      return response.data;
     },
+
     onSuccess: (data, variables, context) => {
       // 1. Save returned JWT token
       const token = data.token || data.access_token || data.jwt || data.accessToken;

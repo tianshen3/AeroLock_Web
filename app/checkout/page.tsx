@@ -4,13 +4,14 @@ import React, { useState, Suspense, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Shield, Zap, Check, Lock, RefreshCw, AlertCircle } from 'lucide-react';
 import { TransferState } from '@/src/types';
-import { useConfirmBooking } from '@/src/hooks/useSeats';
+import { useConfirmBooking, useSeat } from '@/src/hooks/useSeats';
 import { useUserProfile } from '@/src/hooks/useUserProfile';
 import { useProfile } from '@/src/hooks/useCustomer';
 import { useTerminal } from '@/src/context/TerminalContext';
 import { useBookings } from '@/src/hooks/useBookings';
 import { useFlights } from '@/src/hooks/useFlights';
 import { getResolvedFullName, getResolvedFirstName, getStoredUserObject } from '@/src/utils/userUtils';
+import { calculatePriceBreakdown } from '@/src/utils/formatCurrency';
 
 interface ConfirmResponse {
   bookingId: number;
@@ -50,9 +51,25 @@ function CheckoutContent() {
     return flights.find((f) => Number(f.id) === Number(targetFlightId) || f.flightNumber === String(targetFlightId));
   }, [flights, targetFlightId]);
 
+  const targetSeatIdForQuery = activeBooking?.seatId ?? rawSeatId;
+  const { data: seatData } = useSeat(targetSeatIdForQuery);
+
+  const resolvedPrice = useMemo(() => {
+    if (activeBooking?.seat?.price) return Number(activeBooking.seat.price);
+    if (activeBooking?.price) return Number(activeBooking.price);
+    if (activeBooking?.fare) return Number(activeBooking.fare);
+    if (seatData?.price) return Number(seatData.price);
+    return 4500;
+  }, [activeBooking, seatData]);
+
+  const priceBreakdown = useMemo(() => {
+    return calculatePriceBreakdown(resolvedPrice);
+  }, [resolvedPrice]);
+
   const origin = flight?.origin || 'JFK';
   const destination = flight?.destination || 'LHR';
   const flightCode = flight?.flightNumber || flightId;
+
 
   const getPassengerName = () => {
     // 1. Try useUserProfile response
@@ -250,8 +267,8 @@ function CheckoutContent() {
                   <span className="sm:col-span-5 text-[#bac9cc] tracking-widest uppercase">
                     AMOUNT:
                   </span>
-                  <span className="sm:col-span-7 font-bold text-[#bac9cc] tracking-wider uppercase">
-                    [PENDING_BACKEND_SYNC]
+                  <span className="sm:col-span-7 font-bold text-[#00e5ff] tracking-wider uppercase font-mono">
+                    {priceBreakdown.formattedBase}
                   </span>
                 </div>
               </div>
@@ -319,12 +336,13 @@ function CheckoutContent() {
 
                   <div className="flex justify-between items-center text-[10px] pt-1">
                     <span className="text-[#bac9cc]">VALUATION</span>
-                    <span className="text-[#bac9cc] font-bold tracking-wider">
-                      [PENDING_BACKEND_SYNC]
+                    <span className="text-[#00e5ff] font-bold tracking-wider">
+                      {priceBreakdown.formattedTotal}
                     </span>
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
         </div>
@@ -402,21 +420,30 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              {/* Valuation Total Box (With Placeholder) */}
-              <div className="bg-[#051424] border border-[#3b494c] p-4 space-y-1 rounded-none">
-                <div className="text-[10px] text-[#bac9cc] tracking-widest uppercase">
-                  FINAL_TOTAL
+              {/* Valuation Total Box */}
+              <div className="bg-[#051424] border border-[#3b494c] p-4 space-y-2 rounded-none font-mono">
+                <div className="flex justify-between items-center text-[10px] text-[#bac9cc] tracking-widest uppercase pb-1 border-b border-[#3b494c]/40">
+                  <span>BASE SEAT FARE:</span>
+                  <span className="text-[#d4e4fa] font-bold">{priceBreakdown.formattedBase}</span>
                 </div>
-                <div className="flex items-baseline justify-between py-1">
-                  <span className="text-[#bac9cc] font-bold tracking-wider uppercase">
-                    [PENDING_BACKEND_SYNC]
+                <div className="flex justify-between items-center text-[10px] text-[#bac9cc] tracking-widest uppercase pb-1 border-b border-[#3b494c]/40">
+                  <span>AVIATION TAX (18%):</span>
+                  <span className="text-[#d4e4fa] font-bold">{priceBreakdown.formattedTax}</span>
+                </div>
+                <div className="flex items-baseline justify-between pt-1">
+                  <span className="text-xs font-bold text-[#00e5ff] tracking-widest uppercase">
+                    TOTAL AMOUNT PAYABLE:
+                  </span>
+                  <span className="text-lg font-extrabold text-[#00e5ff] tracking-wider">
+                    {priceBreakdown.formattedTotal}
                   </span>
                 </div>
-                <div className="text-[10px] text-[#bac9cc] pt-1 border-t border-[#3b494c]/40 flex justify-between">
+                <div className="text-[10px] text-[#bac9cc] pt-2 border-t border-[#3b494c]/40 flex justify-between">
                   <span>EST_TRANSFER: 2.4MS</span>
                   <span>NODE: TYCHO_STATION</span>
                 </div>
               </div>
+
             </div>
 
             {/* Bottom Actions & PRIMARY ACTION BUTTON */}

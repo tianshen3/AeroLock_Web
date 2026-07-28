@@ -41,25 +41,11 @@ export const useLogin = (options?: UseLoginOptions) => {
   return useMutation<LoginResponse, Error, LoginCredentials>({
     ...mutationOptions,
     mutationFn: async (credentials: LoginCredentials) => {
-      try {
-        // Sends POST request to /auth/login (api base URL includes /api)
-        const response = await api.post<LoginResponse>('/auth/login', credentials);
-        return response.data;
-      } catch (err: unknown) {
-        console.warn('Backend /auth/login error or offline, fallback to local terminal token generation.', err);
-        const mockUser: User = {
-          id: `usr-${Date.now()}`,
-          email: credentials.email,
-          name: credentials.email.split('@')[0].toUpperCase(),
-        };
-        const mockToken = `aerolock_jwt_${Date.now()}_${btoa(credentials.email)}`;
-        return {
-          token: mockToken,
-          user: mockUser,
-          message: 'SESSION_AUTHENTICATED_SUCCESSFULLY',
-        };
-      }
+      // Sends POST request to /auth/login (api base URL includes /api)
+      const response = await api.post<LoginResponse>('/auth/login', credentials);
+      return response.data;
     },
+
     onSuccess: (data, variables, context) => {
       // 1. Save returned JWT token to local storage and cookie helper
       const token = data.token || data.access_token || data.jwt || data.accessToken;

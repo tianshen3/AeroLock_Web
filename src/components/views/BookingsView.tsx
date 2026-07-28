@@ -2,10 +2,12 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useBookings, type Booking, type BookingStatus } from '../../hooks/useBookings';
-import { useCancelBooking } from '../../hooks/useSeats';
+import { useCancelBooking, useSeat } from '../../hooks/useSeats';
 import { useFlights } from '../../hooks/useFlights';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { getResolvedFullName } from '../../utils/userUtils';
+import { formatCurrency } from '../../utils/formatCurrency';
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,6 +74,9 @@ const BookingRow: React.FC<BookingRowProps> = ({
       ? 'border-[#849396] text-[#849396] bg-[#849396]/10'
       : 'border-[#00e5ff] text-[#00e5ff] bg-[#00e5ff]/10';
 
+  // Query seat data if flat seat relationship is not fully populated
+  const { data: seatData } = useSeat(booking.seatId);
+
   // Find the matching flight in flights using booking.flightId
   const flight = flights?.find((f) => Number(f.id) === Number(booking.flightId));
 
@@ -87,14 +92,28 @@ const BookingRow: React.FC<BookingRowProps> = ({
   const seatLabel = resolveField(
     booking.seatNumber,
     booking.seat?.seatNumber,
+    seatData?.seatNumber,
     booking.seatId ? `SEAT ${booking.seatId}` : null,
   );
-  const priceLabel = resolveField(
-    booking.price,
-    booking.fare,
-    booking.seat?.price ? `₹${booking.seat.price}` : null,
-    '—',
-  );
+
+  const priceINR = React.useMemo(() => {
+    if (booking.price !== undefined && booking.price !== null && !isNaN(Number(booking.price))) {
+      return Number(booking.price);
+    }
+    if (booking.fare !== undefined && booking.fare !== null && !isNaN(Number(booking.fare))) {
+      return Number(booking.fare);
+    }
+    if (booking.seat?.price !== undefined && booking.seat?.price !== null && !isNaN(Number(booking.seat.price))) {
+      return Number(booking.seat.price);
+    }
+    if (seatData?.price !== undefined && seatData?.price !== null && !isNaN(Number(seatData.price))) {
+      return Number(seatData.price);
+    }
+    return 4500;
+  }, [booking, seatData]);
+
+  const priceLabel = formatCurrency(priceINR);
+
 
   return (
     <tr

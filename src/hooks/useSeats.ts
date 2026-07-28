@@ -42,6 +42,31 @@ export function useSeats(flightId: string) {
   });
 }
 
+export function useSeat(seatId?: number | string | null) {
+  return useQuery<Seat | null>({
+    queryKey: ['seat', seatId],
+    queryFn: async () => {
+      if (!seatId) return null;
+      const baseUrl = getApiBaseUrl();
+      const url = `${baseUrl}/seats/${seatId}`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          console.error(`[SYS] ERROR_FETCHING_SEAT for seatId ${seatId}:`, res.statusText);
+          return null;
+        }
+        const data = await res.json();
+        return (data.data || data) as Seat;
+      } catch (err) {
+        console.error(`[SYS] NETWORK_ERROR fetching seat ${seatId}:`, err);
+        return null;
+      }
+    },
+    enabled: !!seatId,
+  });
+}
+
+
 export function useLockSeat() {
   const queryClient = useQueryClient();
 
