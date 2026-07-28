@@ -10,8 +10,10 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onToggleSidebar }) => {
-  const { setActiveTab, setIsLoginOpen, operator, metrics } = useTerminal();
+  const { setActiveTab, setIsLoginOpen, operator, metrics, handleLogout } = useTerminal();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,6 +22,30 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onToggleSidebar }
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      if (typeof window !== 'undefined') {
+        const token =
+          localStorage.getItem('accessToken') ||
+          localStorage.getItem('auth_token') ||
+          localStorage.getItem('token');
+        const auth = !!token;
+        setIsAuthenticated(auth);
+        if (!auth) setIsUserMenuOpen(false);
+      }
+    };
+
+    checkAuth();
+
+    window.addEventListener('storage', checkAuth);
+    window.addEventListener('focus', checkAuth);
+
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('focus', checkAuth);
+    };
   }, []);
 
   return (
@@ -67,13 +93,52 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onToggleSidebar }
           settings
         </button>
 
-        <button
-          onClick={() => setIsLoginOpen(true)}
-          className="ml-2 border border-[#00e5ff] px-3 py-1 text-[#00e5ff] font-bold text-xs hover:bg-[#00e5ff] hover:text-[#051424] active:bg-[#00e5ff] transition-none flex items-center gap-1.5 cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-sm">lock</span>
-          <span>{operator.clearance.replace('_', ' ')}</span>
-        </button>
+        {isAuthenticated ? (
+          <div className="relative">
+            <button
+              onClick={() => setIsUserMenuOpen((prev) => !prev)}
+              title="Toggle Operator Session Menu"
+              className={`border px-3 py-1 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer ${
+                isUserMenuOpen
+                  ? 'border-[#00e5ff] bg-[#00e5ff] text-[#051424]'
+                  : 'border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff] hover:bg-[#00e5ff]/20'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${isUserMenuOpen ? 'bg-[#051424]' : 'bg-[#00e5ff] animate-pulse'}`}></span>
+              <span>{operator.clearance.replace('_', ' ')}</span>
+              <span className={`hidden md:inline font-normal text-[10px] ${isUserMenuOpen ? 'text-[#051424]/80' : 'text-[#bac9cc]'}`}>
+                [{operator.name}]
+              </span>
+              <span className="material-symbols-outlined text-xs">
+                {isUserMenuOpen ? 'expand_less' : 'expand_more'}
+              </span>
+            </button>
+
+            {isUserMenuOpen && (
+              <div className="absolute right-0 mt-2 w-32 bg-[#0d1c2d] border border-[#00e5ff] shadow-2xl p-1.5 z-50 font-mono text-xs uppercase">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full border border-red-500/60 bg-red-950/40 text-red-400 hover:bg-red-600 hover:text-white p-2 font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer text-xs"
+                >
+                  <span className="material-symbols-outlined text-sm">logout</span>
+                  <span>LOGOUT</span>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={() => setIsLoginOpen(true)}
+            className="ml-2 border border-[#00e5ff] px-3 py-1 text-[#00e5ff] font-bold text-xs hover:bg-[#00e5ff] hover:text-[#051424] active:bg-[#00e5ff] transition-none flex items-center gap-1.5 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-sm">lock_open</span>
+            <span>SYSTEM LOGIN</span>
+          </button>
+        )}
       </div>
     </header>
   );

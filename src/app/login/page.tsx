@@ -11,6 +11,23 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams?.get('returnUrl') || searchParams?.get('redirect') || '/';
 
+  // Automatically redirect away if user is already authenticated
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token =
+        localStorage.getItem('accessToken') ||
+        localStorage.getItem('auth_token') ||
+        localStorage.getItem('token');
+      if (token) {
+        try {
+          router.replace(returnUrl);
+        } catch {
+          window.location.href = returnUrl;
+        }
+      }
+    }
+  }, [router, returnUrl]);
+
   const [email, setEmail] = useState('operator@aerolock.com');
   const [password, setPassword] = useState('');
   const [tier, setTier] = useState<ClearanceTier>('L1_CIVILIAN');
@@ -26,6 +43,12 @@ function LoginForm() {
         localStorage.setItem('accessToken', token);
         localStorage.setItem('auth_token', token);
         localStorage.setItem('token', token);
+        localStorage.setItem('clearance', tier);
+        const name = data.user?.name || email.split('@')[0].toUpperCase() || 'OPERATOR';
+        localStorage.setItem(
+          'user',
+          JSON.stringify({ name, role: tier, email })
+        );
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('storage'));
         }

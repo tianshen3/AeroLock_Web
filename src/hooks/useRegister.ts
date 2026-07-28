@@ -56,9 +56,10 @@ export const useRegister = (options?: UseRegisterOptions) => {
     },
     onSuccess: (data, variables, context) => {
       // 1. Save returned JWT token
-      const token = data.token || data.access_token || data.jwt;
+      const token = data.token || data.access_token || data.jwt || data.accessToken;
       if (token) {
         setAuthToken(token);
+        localStorage.setItem('accessToken', token);
         localStorage.setItem('auth_token', token);
         localStorage.setItem('token', token);
       }
@@ -69,6 +70,10 @@ export const useRegister = (options?: UseRegisterOptions) => {
         if (setUserState) {
           setUserState(data.user);
         }
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage'));
       }
 
       // 3. Fire callbacks

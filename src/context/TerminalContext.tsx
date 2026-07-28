@@ -45,6 +45,7 @@ interface TerminalContextType {
   handleUpdateFleetStatus: (unitId: string, newStatus: FleetUnit['status']) => void;
   handleAddLog: (newLog: SystemLog) => void;
   handleSetClearance: (level: ClearanceLevel, name: string) => void;
+  handleLogout: () => void;
 }
 
 const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
@@ -65,6 +66,64 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     nodeLocation: 'NORWAY_SECTOR_07',
     sessionTime: 12840,
   });
+
+  // Sync operator state with localStorage token and user data
+  React.useEffect(() => {
+    const syncOperatorState = () => {
+      if (typeof window === 'undefined') return;
+
+      const token =
+        localStorage.getItem('accessToken') ||
+        localStorage.getItem('auth_token') ||
+        localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      const savedClearance = localStorage.getItem('clearance') as ClearanceLevel | null;
+
+      if (token) {
+        let name = 'OPERATOR_01';
+        let clearance: ClearanceLevel = savedClearance || 'L2_COMMAND';
+
+        if (userStr) {
+          try {
+            const userObj = JSON.parse(userStr);
+            if (userObj.name) name = String(userObj.name).toUpperCase();
+            if (userObj.role && String(userObj.role).toUpperCase().includes('CIVILIAN')) {
+              clearance = 'L1_CIVILIAN';
+            } else if (userObj.role) {
+              clearance = 'L2_COMMAND';
+            }
+          } catch {
+            // Keep default fallback
+          }
+        }
+
+        setOperator((prev) => ({
+          ...prev,
+          name,
+          clearance,
+        }));
+      } else {
+        setOperator({
+          id: 'op-01',
+          name: 'OPERATOR_01',
+          clearance: 'L1_CIVILIAN',
+          avatar: '',
+          nodeLocation: 'NORWAY_SECTOR_07',
+          sessionTime: 12840,
+        });
+      }
+    };
+
+    syncOperatorState();
+
+    window.addEventListener('storage', syncOperatorState);
+    window.addEventListener('focus', syncOperatorState);
+
+    return () => {
+      window.removeEventListener('storage', syncOperatorState);
+      window.removeEventListener('focus', syncOperatorState);
+    };
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState<{ origin: string; destination: string; date: string; pax: number }>({
     origin: '',
@@ -141,11 +200,48 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const handleSetClearance = (level: ClearanceLevel, name: string) => {
+    const opName = name || 'OPERATOR_01';
     setOperator((prev) => ({
       ...prev,
       clearance: level,
-      name: name || 'OPERATOR_01',
+      name: opName,
     }));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('clearance', level);
+      const existingUserStr = localStorage.getItem('user');
+      if (existingUserStr) {
+        try {
+          const userObj = JSON.parse(existingUserStr);
+          userObj.role = level;
+          userObj.name = opName;
+          localStorage.setItem('user', JSON.stringify(userObj));
+        } catch {
+          localStorage.setItem('user', JSON.stringify({ name: opName, role: level }));
+        }
+      } else {
+        localStorage.setItem('user', JSON.stringify({ name: opName, role: level }));
+      }
+      window.dispatchEvent(new Event('storage'));
+    }
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('clearance');
+      window.dispatchEvent(new Event('storage'));
+    }
+    setOperator({
+      id: 'op-01',
+      name: 'OPERATOR_01',
+      clearance: 'L1_CIVILIAN',
+      avatar: '',
+      nodeLocation: 'NORWAY_SECTOR_07',
+      sessionTime: 12840,
+    });
   };
 
   return (
@@ -176,6 +272,7 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         handleUpdateFleetStatus: handleUpdateUnitStatus,
         handleAddLog,
         handleSetClearance,
+        handleLogout,
       }}
     >
       {children}

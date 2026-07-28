@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useProfile } from '../hooks/useCustomer';
 import { useFlights } from '../hooks/useFlights';
+import { useTerminal } from '../context/TerminalContext';
 import Providers from './Providers';
 import { Header } from './Header';
 import { Footer } from './Footer';
@@ -20,6 +21,7 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
 
   const pathname = usePathname();
+  const { operator, handleLogout: terminalLogout, setIsLoginOpen } = useTerminal();
 
   // Fetch profile and flight data globally inside QueryClientProvider context on initial load/refresh
   const { data: profile } = useProfile();
@@ -29,7 +31,10 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
   useEffect(() => {
     const checkAuth = () => {
       if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('accessToken');
+        const token =
+          localStorage.getItem('accessToken') ||
+          localStorage.getItem('auth_token') ||
+          localStorage.getItem('token');
         setIsAuthenticated(!!token);
       }
     };
@@ -47,19 +52,18 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('token');
-    window.location.href = '/'; // Hard redirect to clear all query cache and states
+    terminalLogout();
+    setIsAuthenticated(false);
+    setIsProfileOpen(false);
   };
 
   // Extract operator display name and clearance level
-  const firstName = profile?.name ? profile.name.split(' ')[0].toUpperCase() : 'OPERATOR';
-  const rawRole = profile?.role;
-  const clearance =
-    rawRole && (String(rawRole).toUpperCase().includes('COMMAND') || rawRole === 'L2_COMMAND')
-      ? 'L2_COMMAND'
-      : 'L1_CIVILIAN';
+  const firstName = profile?.name
+    ? profile.name.split(' ')[0].toUpperCase()
+    : operator.name
+    ? operator.name.split(' ')[0].toUpperCase()
+    : 'OPERATOR';
+  const clearance = operator.clearance;
 
   // Navigation Items Matrix
   const navItems = [
@@ -132,16 +136,19 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
           {/* Dynamic Operator Profile Footer */}
           <div className="mt-auto shrink-0 bg-[#122131]">
             {!isAuthenticated ? (
-              <Link
-                href="/login"
-                onClick={() => setIsSidebarOpen(false)}
-                className="bg-transparent border-t border-[#3b494c] text-[#bac9cc] hover:text-[#4ade80] hover:bg-[#4ade80]/10 p-4 flex items-center gap-3 w-full text-left font-bold tracking-widest text-xs font-mono no-underline uppercase transition-colors rounded-none block cursor-pointer"
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSidebarOpen(false);
+                  setIsLoginOpen(true);
+                }}
+                className="bg-transparent border-t border-[#3b494c] text-[#bac9cc] hover:text-[#00e5ff] hover:bg-[#00e5ff]/10 p-4 flex items-center gap-3 w-full text-left font-bold tracking-widest text-xs font-mono uppercase transition-colors rounded-none cursor-pointer"
               >
                 <span className="material-symbols-outlined text-base shrink-0">
                   power_settings_new
                 </span>
                 <span>SYSTEM_LOGIN</span>
-              </Link>
+              </button>
             ) : (
               <div className="flex flex-col w-full">
                 {isProfileOpen && (
