@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useFlights } from '../../../../hooks/useFlights';
+import { useJoinWaitlist } from '../../../../hooks/useWaitlist';
 
 export default function SeatsPage() {
   const params = useParams();
@@ -22,7 +23,30 @@ export default function SeatsPage() {
   const seatsLeft = ['A', 'B'];
   const seatsRight = ['C', 'D'];
 
-  const occupiedSeats = new Set(['1A', '2B', '3C', '5D', '7A', '8C']);
+  const joinWaitlistMutation = useJoinWaitlist();
+
+  // If availablePax is 0 or flight is fully booked, all seats are occupied
+  const flightAny = flight as (Record<string, unknown> | null);
+  const isFullyBooked = flightAny ? flightAny.availablePax === 0 : false;
+  const allSeatIds = rows.flatMap((r) => [...seatsLeft.map((c) => `${r}${c}`), ...seatsRight.map((c) => `${r}${c}`)]);
+  const occupiedSeats = isFullyBooked ? new Set(allSeatIds) : new Set(['1A', '2B', '3C', '5D', '7A', '8C']);
+  const isCabinFull = isFullyBooked || occupiedSeats.size >= allSeatIds.length;
+
+  const handleJoinWaitlist = () => {
+    const numId = parseInt(flightId, 10) || 1;
+    joinWaitlistMutation.mutate(
+      { flightId: numId },
+      {
+        onSuccess: () => {
+          alert(`SUCCESSFULLY JOINED WAITLIST QUEUE FOR FLIGHT ${flightNumber}`);
+          router.push('/dashboard/waitlist');
+        },
+        onError: (err: Error) => {
+          alert(`WAITLIST_ERROR: ${err.message}`);
+        },
+      }
+    );
+  };
 
   return (
     <div className="w-full min-h-screen bg-[#051424] font-mono text-[#d4e4fa] p-6 md:p-8 max-w-3xl mx-auto space-y-6">
@@ -49,6 +73,21 @@ export default function SeatsPage() {
           </p>
         )}
       </div>
+
+      {/* Fully Booked Alert Banner */}
+      {isCabinFull && (
+        <div className="bg-[#ffb4ab]/10 border-2 border-[#ffb4ab] p-4 text-[#ffb4ab] font-bold text-xs flex items-center justify-between uppercase rounded-none animate-pulse">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-xl">block</span>
+            <div>
+              <span className="block font-extrabold tracking-wider text-sm">[ CABIN_FULL // ALL SEATS OCCUPIED ]</span>
+              <span className="text-[10px] text-[#d4e4fa] font-mono tracking-widest font-normal">
+                ALL SEATS FOR FLIGHT {flightNumber} ARE RESERVED. JOIN THE WAITLIST FOR PRIORITY PROMOTION.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex justify-around text-xs border border-[#3b494c] p-3 bg-[#0d1c2d]">
@@ -136,7 +175,9 @@ export default function SeatsPage() {
       {/* Action Footer */}
       <div className="flex justify-between items-center border-t border-[#3b494c] pt-4">
         <div className="text-xs">
-          {selectedSeat ? (
+          {isCabinFull ? (
+            <span className="text-[#ffb4ab] font-bold uppercase">ALL_SEATS_FILLED // WAITLIST_REQUIRED</span>
+          ) : selectedSeat ? (
             <span>
               SELECTED: <strong className="text-[#00e5ff]">{selectedSeat}</strong>
             </span>
@@ -144,16 +185,27 @@ export default function SeatsPage() {
             <span className="text-[#849396]">SELECT_A_VECTOR_SEAT</span>
           )}
         </div>
-        <button
-          disabled={!selectedSeat}
-          onClick={() => {
-            alert(`CONFIRMED SEAT RESERVATION: ${selectedSeat} FOR FLIGHT ${flightNumber}`);
-            router.push('/flights');
-          }}
-          className="px-6 py-2 bg-[#00e5ff] text-[#00363d] font-bold text-xs hover:bg-[#9cf0ff] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-        >
-          CONFIRM_SEAT
-        </button>
+        {isCabinFull ? (
+          <button
+            disabled={joinWaitlistMutation.isPending}
+            onClick={handleJoinWaitlist}
+            className="px-6 py-2 bg-[#00e5ff] text-[#051424] font-bold text-xs hover:bg-[#00daf3] uppercase transition-all rounded-none cursor-pointer flex items-center gap-1 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-sm">add</span>
+            <span>{joinWaitlistMutation.isPending ? '[ JOINING... ]' : '[+] JOIN_WAITLIST'}</span>
+          </button>
+        ) : (
+          <button
+            disabled={!selectedSeat}
+            onClick={() => {
+              alert(`CONFIRMED SEAT RESERVATION: ${selectedSeat} FOR FLIGHT ${flightNumber}`);
+              router.push('/flights');
+            }}
+            className="px-6 py-2 bg-[#00e5ff] text-[#00363d] font-bold text-xs hover:bg-[#9cf0ff] disabled:opacity-40 disabled:cursor-not-allowed transition-all uppercase rounded-none cursor-pointer"
+          >
+            CONFIRM_SEAT
+          </button>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSeats, useLockSeat, Seat } from '@/src/hooks/useSeats';
+import { useJoinWaitlist } from '@/src/hooks/useWaitlist';
 import { SeatMapGrid } from '@/src/components/seats/SeatMapGrid';
 import { BookingPriceSummary } from '@/src/components/seats/BookingPriceSummary';
 
@@ -19,6 +20,27 @@ export default function SeatMatrixPage() {
 
   const { data: seats = [], isLoading, isError, error } = useSeats(flightId);
   const lockMutation = useLockSeat();
+  const joinWaitlistMutation = useJoinWaitlist();
+
+  const isFullyBooked = !isLoading && !isError && (
+    seats.length === 0 || seats.every((s) => s.status !== 'AVAILABLE')
+  );
+
+  const handleJoinWaitlist = () => {
+    const parsedFlightId = parseInt(flightId.replace(/\D/g, ''), 10) || 1;
+    joinWaitlistMutation.mutate(
+      { flightId: parsedFlightId },
+      {
+        onSuccess: () => {
+          setSuccessMessage(`[SYS] SUCCESSFULLY JOINED WAITLIST QUEUE FOR FLIGHT ${flightId}`);
+          setTimeout(() => router.push('/dashboard/waitlist'), 1500);
+        },
+        onError: (err: Error) => {
+          setSuccessMessage(`[SYS] WAITLIST_ERROR: ${err.message}`);
+        },
+      }
+    );
+  };
 
   const handleSelectSeat = (seat: Seat) => {
     if (seat.status !== 'AVAILABLE') return;
@@ -98,6 +120,29 @@ export default function SeatMatrixPage() {
         </div>
       </div>
 
+      {/* Fully Booked Warning Alert Banner */}
+      {isFullyBooked && (
+        <div className="bg-[#ffb4ab]/10 border-2 border-[#ffb4ab] p-4 text-[#ffb4ab] font-bold text-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3 uppercase rounded-none animate-pulse">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-xl">block</span>
+            <div>
+              <span className="block font-extrabold tracking-wider text-sm">[ CABIN_FULL // ALL SEATS OCCUPIED ]</span>
+              <span className="text-[10px] text-[#d4e4fa] font-mono tracking-widest font-normal">
+                ALL SEATS FOR FLIGHT {flightId} ARE CURRENTLY RESERVED OR LOCKED. JOIN THE WAITLIST FOR PRIORITY PROMOTION.
+              </span>
+            </div>
+          </div>
+          <button
+            disabled={joinWaitlistMutation.isPending}
+            onClick={handleJoinWaitlist}
+            className="px-6 py-3 bg-[#00e5ff] text-[#051424] font-bold text-xs hover:bg-[#9cf0ff] uppercase cursor-pointer rounded-none flex items-center gap-2 shrink-0 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-sm">add</span>
+            <span>{joinWaitlistMutation.isPending ? '[ JOINING... ]' : '[+] JOIN_WAITLIST'}</span>
+          </button>
+        </div>
+      )}
+
       {/* Dashboard Columns */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Interactive Fuselage Seat Map Grid */}
@@ -120,6 +165,9 @@ export default function SeatMatrixPage() {
             isLocking={lockMutation.isPending}
             lockError={lockMutation.isError ? (lockMutation.error as Error)?.message : null}
             successMessage={successMessage}
+            isFullyBooked={isFullyBooked}
+            onJoinWaitlist={handleJoinWaitlist}
+            isJoiningWaitlist={joinWaitlistMutation.isPending}
           />
         </div>
       </div>

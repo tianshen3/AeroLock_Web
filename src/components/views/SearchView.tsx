@@ -197,9 +197,15 @@ export const SearchView: React.FC<SearchViewProps> = ({
                   </div>
                   <div>
                     <span className="text-[10px] text-[#849396] block uppercase">PAX SLOTS</span>
-                    <span className="font-bold text-emerald-400">
-                      {flight.availablePax} / {flight.paxCapacity} AVAILABLE
-                    </span>
+                    {flight.availablePax === 0 ? (
+                      <span className="font-bold text-[#ffb4ab]">
+                        0 / {flight.paxCapacity} [ CAPACITY_FILLED ]
+                      </span>
+                    ) : (
+                      <span className="font-bold text-emerald-400">
+                        {flight.availablePax} / {flight.paxCapacity} AVAILABLE
+                      </span>
+                    )}
                   </div>
                   <div>
                     <span className="text-[10px] text-[#849396] block uppercase">ENCRYPTION</span>
@@ -212,8 +218,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
                   <div className="text-[10px] text-[#849396]">
                     CLEARANCE: <strong className="text-[#00e5ff]">{flight.clearanceRequired}</strong>
                   </div>
-                  <div>
-                    {flight.availablePax <= 0 ? (
+                  <div className="flex gap-2">
+                    {flight.availablePax === 0 ? (
                       <button
                         onClick={() => handleJoinWaitlist(flight)}
                         disabled={joinWaitlistMutation.isPending}
