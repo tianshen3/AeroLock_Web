@@ -50,6 +50,7 @@ export const FleetDetailModal: React.FC<FleetDetailModalProps> = ({
 
         {/* Unit Hero Banner */}
         <div className="relative h-48 border border-[#3b494c] overflow-hidden group bg-[#122131]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={unit.image}
             alt={unit.name}

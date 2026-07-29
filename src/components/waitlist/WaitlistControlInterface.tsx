@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   useLeaveWaitlist,
   useUserBookings,
@@ -30,13 +30,13 @@ function PromotedOfferBanner({ booking, activeWaitlists }: { booking: Booking; a
   const targetWaitlist = activeWaitlists.find((w) => w.flightId === booking.flightId) || activeWaitlists[0];
   const waitlistId = targetWaitlist?.id;
 
-  const calculateTimeRemaining = () => {
+  const calculateTimeRemaining = useCallback(() => {
     const createdAtTime = new Date(booking.createdAt).getTime();
     const expiryTime = createdAtTime + 5 * 60 * 1000; // 5 minutes TTL
     const now = Date.now();
     const diffInSeconds = Math.floor((expiryTime - now) / 1000);
     return Math.max(0, diffInSeconds);
-  };
+  }, [booking.createdAt]);
 
   const [secondsRemaining, setSecondsRemaining] = useState<number>(calculateTimeRemaining);
 
@@ -51,7 +51,7 @@ function PromotedOfferBanner({ booking, activeWaitlists }: { booking: Booking; a
     }
   };
 
-  const handleDecline = async () => {
+  const handleDecline = useCallback(async () => {
     try {
       await declineSeatMutation.mutateAsync({ bookingId });
       if (waitlistId) {
@@ -60,7 +60,7 @@ function PromotedOfferBanner({ booking, activeWaitlists }: { booking: Booking; a
     } catch (err: unknown) {
       console.error('[AEROLOCK_UI] DECLINE_SEAT_ERROR:', err);
     }
-  };
+  }, [bookingId, declineSeatMutation, leaveWaitlistMutation, waitlistId]);
 
   useEffect(() => {
     setSecondsRemaining(calculateTimeRemaining());
@@ -77,7 +77,7 @@ function PromotedOfferBanner({ booking, activeWaitlists }: { booking: Booking; a
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [booking.createdAt, bookingId]);
+  }, [booking.createdAt, bookingId, calculateTimeRemaining, handleDecline]);
 
   const formatTimer = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);

@@ -44,7 +44,6 @@ export default function CommandPage() {
   // Verify Admin Authorization on Mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const adminToken = localStorage.getItem('adminToken');
       const clearance = localStorage.getItem('clearance');
       const userStr = localStorage.getItem('user');
       let isAdmin = false;

@@ -65,6 +65,7 @@ export const FleetView: React.FC<FleetViewProps> = ({
           >
             {/* Image Banner */}
             <div className="h-52 relative overflow-hidden bg-[#051424]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={unit.image}
                 alt={unit.name}

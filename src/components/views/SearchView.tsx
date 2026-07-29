@@ -51,6 +51,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
     console.log('[AEROLOCK_UI] Executing POST /waitlist for flight:', flightIdNum);
     try {
       await joinWaitlistMutation.mutateAsync({ flightId: flightIdNum });
+      setWaitlistNotice(`WAITLIST QUEUE RESERVED FOR FLIGHT ${flight.flightCode || flight.id}.`);
+      setTimeout(() => setWaitlistNotice(null), 4000);
       router.push('/waitlist');
     } catch (err: unknown) {
       console.error('[AEROLOCK_UI] POST /waitlist REJECTED BY SERVER:', err);

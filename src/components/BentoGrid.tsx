@@ -94,6 +94,7 @@ export const BentoGrid: React.FC = () => {
             className="md:col-span-4 border border-[#3b494c] bg-[#122131] p-0 overflow-hidden group cursor-pointer font-mono"
           >
             <div className="h-64 relative overflow-hidden bg-[#051424]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={featuredUnit.image}
                 alt={featuredUnit.name}
