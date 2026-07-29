@@ -82,7 +82,7 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (token) {
         let name = 'OPERATOR_01';
-        let clearance: ClearanceLevel = savedClearance || 'L2_COMMAND';
+        let clearance: ClearanceLevel = savedClearance || 'L1_CIVILIAN';
 
         if (userStr) {
           try {
@@ -91,10 +91,11 @@ export const TerminalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             if (resolvedName) {
               name = resolvedName.toUpperCase();
             }
-            if (userObj.role && String(userObj.role).toUpperCase().includes('CIVILIAN')) {
-              clearance = 'L1_CIVILIAN';
-            } else if (userObj.role) {
+            const role = userObj.role ? String(userObj.role).toUpperCase() : '';
+            if (role === 'ADMIN' || userObj.clearance === 'L2_COMMAND' || savedClearance === 'L2_COMMAND') {
               clearance = 'L2_COMMAND';
+            } else {
+              clearance = 'L1_CIVILIAN';
             }
           } catch {
             // Keep default fallback

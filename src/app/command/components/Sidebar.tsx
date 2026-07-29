@@ -41,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       localStorage.removeItem('token');
       localStorage.removeItem('clearance');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      window.location.href = '/';
     }
   };
 

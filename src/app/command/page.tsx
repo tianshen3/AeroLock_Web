@@ -62,7 +62,7 @@ export default function CommandPage() {
 
       if (!isAdmin || clearance !== 'L2_COMMAND') {
         // Unauthenticated or insufficient clearance -> redirect to login
-        router.push('/login?returnUrl=/command');
+        router.push('/login?returnUrl=/command&tier=L2_COMMAND');
       }
     }
   }, [router]);
