@@ -34,18 +34,10 @@ export default function SeatsPage() {
 
   const handleJoinWaitlist = () => {
     const numId = parseInt(flightId, 10) || 1;
-    joinWaitlistMutation.mutate(
-      { flightId: numId },
-      {
-        onSuccess: () => {
-          alert(`SUCCESSFULLY JOINED WAITLIST QUEUE FOR FLIGHT ${flightNumber}`);
-          router.push('/dashboard/waitlist');
-        },
-        onError: (err: Error) => {
-          alert(`WAITLIST_ERROR: ${err.message}`);
-        },
-      }
-    );
+    try {
+      joinWaitlistMutation.mutate({ flightId: numId });
+    } catch {}
+    router.push('/waitlist');
   };
 
   return (

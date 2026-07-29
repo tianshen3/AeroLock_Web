@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useJoinWaitlist } from '../hooks/useWaitlist';
 
 interface SeatsModalProps {
@@ -9,6 +10,7 @@ interface SeatsModalProps {
 }
 
 export function SeatsModal({ flightNumber, flightId = 1, isFullyBooked = false, onClose }: SeatsModalProps) {
+  const router = useRouter();
   const [selectedSeat, setSelectedSeat] = useState<string | null>(null);
   const rows = [1, 2, 3, 4, 5, 6, 7, 8];
   const seatsLeft = ['A', 'B'];
@@ -25,18 +27,11 @@ export function SeatsModal({ flightNumber, flightId = 1, isFullyBooked = false, 
   const isCabinFull = isFullyBooked || occupiedSeats.size >= totalSeats;
 
   const handleJoinWaitlist = () => {
-    joinWaitlistMutation.mutate(
-      { flightId: Number(flightId) || 1 },
-      {
-        onSuccess: () => {
-          alert(`SUCCESSFULLY JOINED WAITLIST QUEUE FOR FLIGHT ${flightNumber}`);
-          onClose();
-        },
-        onError: (err) => {
-          alert(`WAITLIST_ERROR: ${err.message}`);
-        },
-      }
-    );
+    try {
+      joinWaitlistMutation.mutate({ flightId: Number(flightId) || 1 });
+    } catch {}
+    onClose();
+    router.push('/waitlist');
   };
 
   return (

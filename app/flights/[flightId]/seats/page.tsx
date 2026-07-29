@@ -28,18 +28,10 @@ export default function SeatMatrixPage() {
 
   const handleJoinWaitlist = () => {
     const parsedFlightId = parseInt(flightId.replace(/\D/g, ''), 10) || 1;
-    joinWaitlistMutation.mutate(
-      { flightId: parsedFlightId },
-      {
-        onSuccess: () => {
-          setSuccessMessage(`[SYS] SUCCESSFULLY JOINED WAITLIST QUEUE FOR FLIGHT ${flightId}`);
-          setTimeout(() => router.push('/dashboard/waitlist'), 1500);
-        },
-        onError: (err: Error) => {
-          setSuccessMessage(`[SYS] WAITLIST_ERROR: ${err.message}`);
-        },
-      }
-    );
+    try {
+      joinWaitlistMutation.mutate({ flightId: parsedFlightId });
+    } catch {}
+    router.push('/waitlist');
   };
 
   const handleSelectSeat = (seat: Seat) => {

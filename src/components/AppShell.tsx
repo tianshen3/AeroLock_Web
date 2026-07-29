@@ -43,7 +43,7 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
         const loggedIn = !!token;
         setIsAuthenticated(loggedIn);
 
-        const PROTECTED_ROUTES = ['/dashboard', '/bookings', '/checkout'];
+        const PROTECTED_ROUTES = ['/dashboard', '/bookings', '/checkout', '/waitlist'];
         if (!loggedIn) {
           const isProtected = PROTECTED_ROUTES.some(
             (route) => pathname === route || pathname.startsWith(route + '/')
@@ -109,7 +109,7 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
     ...(isAuthenticated
       ? [
           { label: 'BOOKINGS', href: '/dashboard', icon: 'airplane_ticket' },
-          { label: 'WAITLIST_QUEUE', href: '/dashboard/waitlist', icon: 'format_list_bulleted' },
+          { label: 'WAITLIST_QUEUE', href: '/waitlist', icon: 'format_list_bulleted' },
         ]
       : []),
   ];

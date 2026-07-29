@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTerminal } from '../../context/TerminalContext';
 import { FlightVector, ClearanceLevel } from '../../types';
 import { useJoinWaitlist } from '../../hooks/useWaitlist';
@@ -18,6 +19,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   initialQuery,
   onBookFlight,
 }) => {
+  const router = useRouter();
   const { flights: contextFlights, operator, handleBookFlight } = useTerminal();
   const availableFlights = flights || contextFlights;
   const currentClearance = userClearance || operator.clearance;
@@ -46,19 +48,10 @@ export const SearchView: React.FC<SearchViewProps> = ({
 
   const handleJoinWaitlist = (flight: FlightVector) => {
     const flightIdNum = parseInt(flight.id, 10) || 1;
-    joinWaitlistMutation.mutate(
-      { flightId: flightIdNum },
-      {
-        onSuccess: () => {
-          setWaitlistNotice(`ADDED TO WAITLIST FOR FLIGHT ${flight.flightCode}`);
-          setTimeout(() => setWaitlistNotice(null), 4000);
-        },
-        onError: (err) => {
-          setWaitlistNotice(`WAITLIST_ERROR: ${err.message}`);
-          setTimeout(() => setWaitlistNotice(null), 4000);
-        },
-      }
-    );
+    try {
+      joinWaitlistMutation.mutate({ flightId: flightIdNum });
+    } catch {}
+    router.push('/waitlist');
   };
 
   return (
