@@ -146,7 +146,7 @@ export default function SeatMatrixPage() {
       {/* Dashboard Columns */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Interactive Fuselage Seat Map Grid */}
-        <div className="lg:col-span-8">
+        <div className={isFullyBooked ? 'lg:col-span-12' : 'lg:col-span-8'}>
           <SeatMapGrid
             seats={seats}
             selectedSeat={selectedSeat}
@@ -157,19 +157,18 @@ export default function SeatMatrixPage() {
           />
         </div>
 
-        {/* Right Column: Dynamic Price Summary Telemetry Panel */}
-        <div className="lg:col-span-4">
-          <BookingPriceSummary
-            selectedSeat={selectedSeat}
-            onConfirmLock={handleLockSequence}
-            isLocking={lockMutation.isPending}
-            lockError={lockMutation.isError ? (lockMutation.error as Error)?.message : null}
-            successMessage={successMessage}
-            isFullyBooked={isFullyBooked}
-            onJoinWaitlist={handleJoinWaitlist}
-            isJoiningWaitlist={joinWaitlistMutation.isPending}
-          />
-        </div>
+        {/* Right Column: Dynamic Price Summary Telemetry Panel (Hidden when fully booked) */}
+        {!isFullyBooked && (
+          <div className="lg:col-span-4">
+            <BookingPriceSummary
+              selectedSeat={selectedSeat}
+              onConfirmLock={handleLockSequence}
+              isLocking={lockMutation.isPending}
+              lockError={lockMutation.isError ? (lockMutation.error as Error)?.message : null}
+              successMessage={successMessage}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

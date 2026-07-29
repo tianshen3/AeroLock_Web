@@ -76,7 +76,7 @@ export default function SeatsPage() {
 
       {/* Fully Booked Alert Banner */}
       {isCabinFull && (
-        <div className="bg-[#ffb4ab]/10 border-2 border-[#ffb4ab] p-4 text-[#ffb4ab] font-bold text-xs flex items-center justify-between uppercase rounded-none animate-pulse">
+        <div className="bg-[#ffb4ab]/10 border-2 border-[#ffb4ab] p-4 text-[#ffb4ab] font-bold text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 uppercase rounded-none animate-pulse">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-xl">block</span>
             <div>
@@ -86,6 +86,14 @@ export default function SeatsPage() {
               </span>
             </div>
           </div>
+          <button
+            disabled={joinWaitlistMutation.isPending}
+            onClick={handleJoinWaitlist}
+            className="px-6 py-3 bg-[#00e5ff] text-[#051424] font-bold text-xs hover:bg-[#00daf3] uppercase transition-all rounded-none cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-sm">add</span>
+            <span>{joinWaitlistMutation.isPending ? '[ JOINING... ]' : '[+] JOIN_WAITLIST'}</span>
+          </button>
         </div>
       )}
 
@@ -172,29 +180,18 @@ export default function SeatsPage() {
         </div>
       </div>
 
-      {/* Action Footer */}
-      <div className="flex justify-between items-center border-t border-[#3b494c] pt-4">
-        <div className="text-xs">
-          {isCabinFull ? (
-            <span className="text-[#ffb4ab] font-bold uppercase">ALL_SEATS_FILLED // WAITLIST_REQUIRED</span>
-          ) : selectedSeat ? (
-            <span>
-              SELECTED: <strong className="text-[#00e5ff]">{selectedSeat}</strong>
-            </span>
-          ) : (
-            <span className="text-[#849396]">SELECT_A_VECTOR_SEAT</span>
-          )}
-        </div>
-        {isCabinFull ? (
-          <button
-            disabled={joinWaitlistMutation.isPending}
-            onClick={handleJoinWaitlist}
-            className="px-6 py-2 bg-[#00e5ff] text-[#051424] font-bold text-xs hover:bg-[#00daf3] uppercase transition-all rounded-none cursor-pointer flex items-center gap-1 disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-sm">add</span>
-            <span>{joinWaitlistMutation.isPending ? '[ JOINING... ]' : '[+] JOIN_WAITLIST'}</span>
-          </button>
-        ) : (
+      {/* Action Footer (Only shown when seats are available for booking) */}
+      {!isCabinFull && (
+        <div className="flex justify-between items-center border-t border-[#3b494c] pt-4">
+          <div className="text-xs">
+            {selectedSeat ? (
+              <span>
+                SELECTED: <strong className="text-[#00e5ff]">{selectedSeat}</strong>
+              </span>
+            ) : (
+              <span className="text-[#849396]">SELECT_A_VECTOR_SEAT</span>
+            )}
+          </div>
           <button
             disabled={!selectedSeat}
             onClick={() => {
@@ -205,8 +202,8 @@ export default function SeatsPage() {
           >
             CONFIRM_SEAT
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,9 +11,6 @@ interface BookingPriceSummaryProps {
   isLocking?: boolean;
   lockError?: string | null;
   successMessage?: string | null;
-  isFullyBooked?: boolean;
-  onJoinWaitlist?: () => void;
-  isJoiningWaitlist?: boolean;
 }
 
 export function BookingPriceSummary({
@@ -22,9 +19,6 @@ export function BookingPriceSummary({
   isLocking,
   lockError,
   successMessage,
-  isFullyBooked,
-  onJoinWaitlist,
-  isJoiningWaitlist,
 }: BookingPriceSummaryProps) {
   const [secondsRemaining, setSecondsRemaining] = useState<number>(300); // 5-minute lock window
 
@@ -51,7 +45,7 @@ export function BookingPriceSummary({
   const tier = selectedSeat ? getSeatTier(selectedSeat.seatNumber) : null;
 
   return (
-    <div className="bg-[#122131] border border-[#3b494c] p-5 flex flex-col justify-between font-mono min-h-[440px]">
+    <div className="bg-[#122131] border border-[#3b494c] p-5 flex flex-col justify-between font-mono min-h-[440px] rounded-none">
       <div>
         {/* Card Header */}
         <div className="flex items-center justify-between border-b border-[#3b494c] pb-3 mb-4">
@@ -126,36 +120,25 @@ export function BookingPriceSummary({
         )}
       </div>
 
-      {/* Lock / Waitlist Action Button */}
+      {/* Lock Action Button */}
       <div className="mt-6">
-        {isFullyBooked ? (
-          <button
-            disabled={isJoiningWaitlist}
-            onClick={onJoinWaitlist}
-            className="w-full h-12 font-extrabold tracking-widest uppercase transition-all flex items-center justify-center gap-2 text-xs rounded-none font-mono bg-[#00e5ff] text-[#051424] hover:bg-[#9cf0ff] cursor-pointer shadow-[0_0_15px_rgba(0,229,255,0.3)] disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-sm">add</span>
-            <span>{isJoiningWaitlist ? '[ JOINING_WAITLIST... ]' : '[+] JOIN_WAITLIST'}</span>
-          </button>
-        ) : (
-          <button
-            disabled={!selectedSeat || isLocking || secondsRemaining === 0}
-            onClick={onConfirmLock}
-            className={`w-full h-12 font-extrabold tracking-widest uppercase transition-all flex items-center justify-center text-xs rounded-none font-mono ${
-              !selectedSeat || isLocking || secondsRemaining === 0
-                ? 'bg-[#3b494c] text-[#051424] cursor-not-allowed'
-                : 'bg-[#00e5ff] text-[#001f24] hover:bg-[#9cf0ff] cursor-pointer shadow-[0_0_15px_rgba(0,229,255,0.3)] active:scale-[0.99]'
-            }`}
-          >
-            {isLocking ? (
-              '[ TRANSMITTING_LOCK_PAYLOAD... ]'
-            ) : secondsRemaining === 0 ? (
-              '[ LOCK_WINDOW_EXPIRED ]'
-            ) : (
-              'PROCEED TO LOCK & PAY'
-            )}
-          </button>
-        )}
+        <button
+          disabled={!selectedSeat || isLocking || secondsRemaining === 0}
+          onClick={onConfirmLock}
+          className={`w-full h-12 font-extrabold tracking-widest uppercase transition-all flex items-center justify-center text-xs rounded-none font-mono ${
+            !selectedSeat || isLocking || secondsRemaining === 0
+              ? 'bg-[#3b494c] text-[#051424] cursor-not-allowed'
+              : 'bg-[#00e5ff] text-[#001f24] hover:bg-[#9cf0ff] cursor-pointer shadow-[0_0_15px_rgba(0,229,255,0.3)] active:scale-[0.99]'
+          }`}
+        >
+          {isLocking ? (
+            '[ TRANSMITTING_LOCK_PAYLOAD... ]'
+          ) : secondsRemaining === 0 ? (
+            '[ LOCK_WINDOW_EXPIRED ]'
+          ) : (
+            'PROCEED TO LOCK & PAY'
+          )}
+        </button>
         <p className="text-[10px] text-[#bac9cc] mt-2 text-center tracking-widest uppercase">
           SECURE_PAYMENT_RSA_4096 ENCRYPTED
         </p>
