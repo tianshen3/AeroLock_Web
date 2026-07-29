@@ -30,7 +30,7 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
 
   // Authentication mutation for existing operator login
   const loginMutation = useLogin({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const rawToken =
         (data as Record<string, unknown>).adminToken ||
         data.token ||
@@ -39,9 +39,64 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
         data.accessToken;
       const extractedToken = typeof rawToken === 'string' ? rawToken : String(rawToken || '');
 
-      const isDataAdmin =
-        (data as Record<string, unknown>).role === 'ADMIN' ||
-        (data.user as Record<string, unknown> | undefined)?.role === 'ADMIN';
+      // Fetch authentic user profile from /auth/profile endpoint using the accessToken
+      let profileRole: string | null = null;
+      if (extractedToken) {
+        try {
+          const res = await fetch('https://aerolock-server.onrender.com/api/auth/profile', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${extractedToken}`,
+            },
+          });
+          if (res.ok) {
+            const profileData = await res.json();
+            const rawRole = profileData.role || profileData.user?.role;
+            if (rawRole) {
+              profileRole = String(rawRole).toUpperCase();
+            }
+          }
+        } catch (e) {
+          console.warn('[MODAL_LOGIN]: Profile fetch error, falling back to login payload role.', e);
+        }
+      }
+
+      const loginRole = (
+        (data as Record<string, unknown>).role ||
+        (data.user as Record<string, unknown> | undefined)?.role ||
+        ''
+      ) as string;
+
+      const effectiveRole = profileRole || (loginRole ? loginRole.toUpperCase() : '');
+      const isAccountAdmin = effectiveRole === 'ADMIN';
+
+      // Validate Clearance Level against authentic account privileges
+      if (selectedLevel === 'L2_COMMAND' && !isAccountAdmin) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('clearance');
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('auth_token');
+        }
+        setErrorMessage('CLEARANCE MISMATCH: CIVILIAN CREDENTIALS CANNOT ACCESS L2_COMMAND TIER');
+        return;
+      }
+
+      if (selectedLevel === 'L1_CIVILIAN' && isAccountAdmin) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('clearance');
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('auth_token');
+        }
+        setErrorMessage('CLEARANCE MISMATCH: ADMIN CREDENTIALS CANNOT ACCESS L1_CIVILIAN TIER');
+        return;
+      }
 
       const name =
         (data as Record<string, unknown>).name ||
@@ -51,7 +106,7 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
 
       setErrorMessage(null);
 
-      if (selectedLevel === 'L2_COMMAND' || isDataAdmin) {
+      if (selectedLevel === 'L2_COMMAND') {
         if (typeof window !== 'undefined') {
           if (extractedToken) {
             localStorage.setItem('adminToken', extractedToken);
@@ -81,7 +136,7 @@ export const TerminalLoginModal: React.FC<TerminalLoginModalProps> = ({
           localStorage.setItem('clearance', 'L1_CIVILIAN');
           localStorage.setItem(
             'user',
-            JSON.stringify({ name: String(name), role: 'CUSTOMER', clearance: 'L1_CIVILIAN', email })
+            JSON.stringify({ name: String(name), role: effectiveRole || 'CUSTOMER', clearance: 'L1_CIVILIAN', email })
           );
           window.dispatchEvent(new Event('storage'));
         }

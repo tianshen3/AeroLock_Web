@@ -50,7 +50,7 @@ function LoginForm() {
   }, [router, returnUrl]);
 
   const loginMutation = useLogin({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Extract adminToken or general JWT token from response payload
       const adminTokenObj =
         (data as Record<string, unknown>).adminToken ||
@@ -60,13 +60,70 @@ function LoginForm() {
         data.jwt;
       const extractedToken = typeof adminTokenObj === 'string' ? adminTokenObj : String(adminTokenObj || '');
 
+      // Fetch authentic user profile from /auth/profile endpoint using the accessToken
+      let profileRole: string | null = null;
+      if (extractedToken) {
+        try {
+          const res = await fetch('https://aerolock-server.onrender.com/api/auth/profile', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${extractedToken}`,
+            },
+          });
+          if (res.ok) {
+            const profileData = await res.json();
+            const rawRole = profileData.role || profileData.user?.role;
+            if (rawRole) {
+              profileRole = String(rawRole).toUpperCase();
+            }
+          }
+        } catch (e) {
+          console.warn('[LOGIN]: Profile verification fetch error, falling back to login payload role.', e);
+        }
+      }
+
+      const loginRole = (
+        (data as Record<string, unknown>).role ||
+        (data.user as Record<string, unknown> | undefined)?.role ||
+        ''
+      ) as string;
+
+      const effectiveRole = profileRole || (loginRole ? loginRole.toUpperCase() : '');
+      const isAccountAdmin = effectiveRole === 'ADMIN';
+
+      // Validate Clearance Level against authentic account privileges
+      if (tier === 'L2_COMMAND' && !isAccountAdmin) {
+        // Customer account attempting L2_COMMAND access
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('clearance');
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('auth_token');
+        }
+        setErrorMessage('[SYS_ERROR]: CLEARANCE_MISMATCH - CIVILIAN_CREDENTIALS_REJECTED_FOR_L2_COMMAND');
+        return;
+      }
+
+      if (tier === 'L1_CIVILIAN' && isAccountAdmin) {
+        // Admin account attempting L1_CIVILIAN access
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('clearance');
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('auth_token');
+        }
+        setErrorMessage('[SYS_ERROR]: CLEARANCE_MISMATCH - ADMIN_CREDENTIALS_REJECTED_FOR_L1_CIVILIAN');
+        return;
+      }
+
       setErrorMessage(null);
 
-      const isDataAdmin =
-        (data as Record<string, unknown>).role === 'ADMIN' ||
-        (data.user as Record<string, unknown> | undefined)?.role === 'ADMIN';
-
-      if (tier === 'L2_COMMAND' || isDataAdmin) {
+      if (tier === 'L2_COMMAND') {
         // [ L2_COMMAND ] Admin routing
         localStorage.setItem('clearance', 'L2_COMMAND');
 
@@ -114,7 +171,7 @@ function LoginForm() {
 
         localStorage.setItem(
           'user',
-          JSON.stringify({ name: String(userNameFromData), role: 'CUSTOMER', clearance: 'L1_CIVILIAN', email })
+          JSON.stringify({ name: String(userNameFromData), role: effectiveRole || 'CUSTOMER', clearance: 'L1_CIVILIAN', email })
         );
 
         if (typeof window !== 'undefined') {

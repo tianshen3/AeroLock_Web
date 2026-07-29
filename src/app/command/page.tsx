@@ -52,7 +52,7 @@ export default function CommandPage() {
       if (userStr) {
         try {
           const userObj = JSON.parse(userStr);
-          if (userObj.role === 'ADMIN' || clearance === 'L2_COMMAND') {
+          if (userObj.role === 'ADMIN' && clearance === 'L2_COMMAND') {
             isAdmin = true;
           }
         } catch {
@@ -60,7 +60,7 @@ export default function CommandPage() {
         }
       }
 
-      if (!adminToken && !isAdmin && clearance !== 'L2_COMMAND') {
+      if (!isAdmin || clearance !== 'L2_COMMAND') {
         // Unauthenticated or insufficient clearance -> redirect to login
         router.push('/login?returnUrl=/command');
       }
