@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useTerminal } from '../../context/TerminalContext';
 import { FlightVector, ClearanceLevel } from '../../types';
+import { useJoinWaitlist } from '../../hooks/useWaitlist';
 
 interface SearchViewProps {
   flights?: FlightVector[];
@@ -26,6 +27,9 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const [destFilter, setDestFilter] = useState(initialQuery?.destination || '');
   const [clearanceFilter, setClearanceFilter] = useState<string>('ALL');
   const [bookedSuccessId, setBookedSuccessId] = useState<string | null>(null);
+  const [waitlistNotice, setWaitlistNotice] = useState<string | null>(null);
+
+  const joinWaitlistMutation = useJoinWaitlist();
 
   const filteredFlights = availableFlights.filter((flight) => {
     const matchesOrigin = !originFilter || flight.origin.toLowerCase().includes(originFilter.toLowerCase()) || flight.originCode.toLowerCase().includes(originFilter.toLowerCase());
@@ -38,6 +42,23 @@ export const SearchView: React.FC<SearchViewProps> = ({
     bookFlight(flight);
     setBookedSuccessId(flight.id);
     setTimeout(() => setBookedSuccessId(null), 4000);
+  };
+
+  const handleJoinWaitlist = (flight: FlightVector) => {
+    const flightIdNum = parseInt(flight.id, 10) || 1;
+    joinWaitlistMutation.mutate(
+      { flightId: flightIdNum },
+      {
+        onSuccess: () => {
+          setWaitlistNotice(`ADDED TO WAITLIST FOR FLIGHT ${flight.flightCode}`);
+          setTimeout(() => setWaitlistNotice(null), 4000);
+        },
+        onError: (err) => {
+          setWaitlistNotice(`WAITLIST_ERROR: ${err.message}`);
+          setTimeout(() => setWaitlistNotice(null), 4000);
+        },
+      }
+    );
   };
 
   return (
@@ -100,12 +121,22 @@ export const SearchView: React.FC<SearchViewProps> = ({
 
       {/* Notification Toast */}
       {bookedSuccessId && (
-        <div className="bg-[#00e5ff]/20 border-2 border-[#00e5ff] p-4 text-[#00e5ff] font-bold text-xs flex justify-between items-center animate-bounce">
+        <div className="bg-[#00e5ff]/20 border-2 border-[#00e5ff] p-4 text-[#00e5ff] font-bold text-xs flex justify-between items-center animate-bounce rounded-none">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined">check_circle</span>
             <span>CLEARANCE SLOT RESERVED FOR FLIGHT {bookedSuccessId}. DISPATCH TELEMETRY LOGGED.</span>
           </div>
           <span className="text-[10px] uppercase text-[#d4e4fa]">VIEW IN BOOKINGS TAB</span>
+        </div>
+      )}
+
+      {waitlistNotice && (
+        <div className="bg-[#00e5ff]/20 border-2 border-[#00e5ff] p-4 text-[#00e5ff] font-bold text-xs flex justify-between items-center animate-bounce rounded-none">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined">format_list_bulleted</span>
+            <span>{waitlistNotice}</span>
+          </div>
+          <span className="text-[10px] uppercase text-[#d4e4fa]">VIEW IN WAITLIST TAB</span>
         </div>
       )}
 
@@ -181,13 +212,26 @@ export const SearchView: React.FC<SearchViewProps> = ({
                   <div className="text-[10px] text-[#849396]">
                     CLEARANCE: <strong className="text-[#00e5ff]">{flight.clearanceRequired}</strong>
                   </div>
-                  <button
-                    onClick={() => handleBook(flight)}
-                    className="bg-[#00e5ff] text-[#051424] font-bold text-xs px-6 py-3 uppercase hover:bg-[#00daf3] transition-none cursor-pointer flex items-center gap-2"
-                  >
-                    <span>RESERVE CLEARANCE</span>
-                    <span className="material-symbols-outlined text-sm">airplane_ticket</span>
-                  </button>
+                  <div>
+                    {flight.availablePax <= 0 ? (
+                      <button
+                        onClick={() => handleJoinWaitlist(flight)}
+                        disabled={joinWaitlistMutation.isPending}
+                        className="bg-[#00e5ff] text-[#051424] font-bold text-xs px-6 py-3 uppercase hover:bg-[#00daf3] transition-none cursor-pointer flex items-center gap-2 rounded-none disabled:opacity-50"
+                      >
+                        <span className="material-symbols-outlined text-sm">add</span>
+                        <span>{joinWaitlistMutation.isPending ? '[ JOINING... ]' : '[+] JOIN_WAITLIST'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleBook(flight)}
+                        className="bg-[#00e5ff] text-[#051424] font-bold text-xs px-6 py-3 uppercase hover:bg-[#00daf3] transition-none cursor-pointer flex items-center gap-2 rounded-none"
+                      >
+                        <span>RESERVE CLEARANCE</span>
+                        <span className="material-symbols-outlined text-sm">airplane_ticket</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

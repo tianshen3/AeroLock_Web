@@ -107,7 +107,10 @@ const AppShellContent: React.FC<AppShellProps> = ({ children }) => {
     { label: 'SEARCH', href: '/', icon: 'search' },
     { label: 'FLIGHTS', href: '/flights', icon: 'flight_takeoff' },
     ...(isAuthenticated
-      ? [{ label: 'BOOKINGS', href: '/dashboard', icon: 'airplane_ticket' }]
+      ? [
+          { label: 'BOOKINGS', href: '/dashboard', icon: 'airplane_ticket' },
+          { label: 'WAITLIST_QUEUE', href: '/dashboard/waitlist', icon: 'format_list_bulleted' },
+        ]
       : []),
   ];
 
