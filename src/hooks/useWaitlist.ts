@@ -67,16 +67,46 @@ export function useJoinWaitlist() {
   return useMutation({
     mutationFn: async ({ flightId }: { flightId: number }) => {
       const baseUrl = getApiBaseUrl();
-      const res = await fetch(`${baseUrl}/waitlist`, {
+      const targetUrl = `${baseUrl}/waitlist`;
+      const authHeaders = getAuthHeaders();
+      const payload = { flightId: Number(flightId) };
+
+      console.log('[AEROLOCK_WAITLIST] OUTBOUND POST /waitlist:', {
+        url: targetUrl,
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ flightId: Number(flightId) }),
+        headers: authHeaders,
+        body: payload,
       });
+
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify(payload),
+      });
+
+      const responseText = await res.text();
+      console.log('[AEROLOCK_WAITLIST] INBOUND RESPONSE:', {
+        status: res.status,
+        statusText: res.statusText,
+        body: responseText,
+      });
+
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to join waitlist: ${errorText || res.statusText}`);
+        let errorMsg = `HTTP_${res.status}_${res.statusText}`;
+        try {
+          const parsed = JSON.parse(responseText);
+          errorMsg = parsed.message || parsed.error || errorMsg;
+        } catch {
+          if (responseText) errorMsg = responseText;
+        }
+        throw new Error(errorMsg);
       }
-      return res.json();
+
+      try {
+        return JSON.parse(responseText);
+      } catch {
+        return { success: true, message: responseText };
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['waitlist'] });

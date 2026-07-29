@@ -46,12 +46,17 @@ export const SearchView: React.FC<SearchViewProps> = ({
     setTimeout(() => setBookedSuccessId(null), 4000);
   };
 
-  const handleJoinWaitlist = (flight: FlightVector) => {
-    const flightIdNum = parseInt(flight.id, 10) || 1;
+  const handleJoinWaitlist = async (flight: FlightVector) => {
+    const flightIdNum = Number(flight.id) || (parseInt(flight.id.replace(/\D/g, ''), 10) || 1);
+    console.log('[AEROLOCK_UI] Executing POST /waitlist for flight:', flightIdNum);
     try {
-      joinWaitlistMutation.mutate({ flightId: flightIdNum });
-    } catch {}
-    router.push('/waitlist');
+      await joinWaitlistMutation.mutateAsync({ flightId: flightIdNum });
+      router.push('/waitlist');
+    } catch (err: unknown) {
+      console.error('[AEROLOCK_UI] POST /waitlist REJECTED BY SERVER:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`[WAITLIST_REJECTED_BY_BACKEND]: ${msg}`);
+    }
   };
 
   return (

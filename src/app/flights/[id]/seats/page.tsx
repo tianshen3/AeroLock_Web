@@ -32,12 +32,17 @@ export default function SeatsPage() {
   const occupiedSeats = isFullyBooked ? new Set(allSeatIds) : new Set(['1A', '2B', '3C', '5D', '7A', '8C']);
   const isCabinFull = isFullyBooked || occupiedSeats.size >= allSeatIds.length;
 
-  const handleJoinWaitlist = () => {
-    const numId = parseInt(flightId, 10) || 1;
+  const handleJoinWaitlist = async () => {
+    const numId = Number(flightId) || (parseInt(flightId.replace(/\D/g, ''), 10) || 1);
+    console.log('[AEROLOCK_UI] Executing POST /waitlist for flightId:', numId);
     try {
-      joinWaitlistMutation.mutate({ flightId: numId });
-    } catch {}
-    router.push('/waitlist');
+      await joinWaitlistMutation.mutateAsync({ flightId: numId });
+      router.push('/waitlist');
+    } catch (err: unknown) {
+      console.error('[AEROLOCK_UI] POST /waitlist REJECTED BY SERVER:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`[WAITLIST_REJECTED_BY_BACKEND]: ${msg}`);
+    }
   };
 
   return (

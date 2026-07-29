@@ -26,12 +26,18 @@ export function SeatsModal({ flightNumber, flightId = 1, isFullyBooked = false, 
   const totalSeats = allSeatIds.length;
   const isCabinFull = isFullyBooked || occupiedSeats.size >= totalSeats;
 
-  const handleJoinWaitlist = () => {
+  const handleJoinWaitlist = async () => {
+    const targetFlightId = Number(flightId) || (parseInt(String(flightId).replace(/\D/g, ''), 10) || 1);
+    console.log('[AEROLOCK_UI] Executing POST /waitlist for flightId:', targetFlightId);
     try {
-      joinWaitlistMutation.mutate({ flightId: Number(flightId) || 1 });
-    } catch {}
-    onClose();
-    router.push('/waitlist');
+      await joinWaitlistMutation.mutateAsync({ flightId: targetFlightId });
+      onClose();
+      router.push('/waitlist');
+    } catch (err: unknown) {
+      console.error('[AEROLOCK_UI] POST /waitlist REJECTED BY SERVER:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`[WAITLIST_REJECTED_BY_BACKEND]: ${msg}`);
+    }
   };
 
   return (

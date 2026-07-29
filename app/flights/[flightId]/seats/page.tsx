@@ -26,12 +26,17 @@ export default function SeatMatrixPage() {
     seats.length === 0 || seats.every((s) => s.status !== 'AVAILABLE')
   );
 
-  const handleJoinWaitlist = () => {
-    const parsedFlightId = parseInt(flightId.replace(/\D/g, ''), 10) || 1;
+  const handleJoinWaitlist = async () => {
+    const targetFlightId = Number(flightId) || (parseInt(flightId.replace(/\D/g, ''), 10) || 1);
+    console.log('[AEROLOCK_UI] Executing POST /waitlist for flightId:', targetFlightId);
     try {
-      joinWaitlistMutation.mutate({ flightId: parsedFlightId });
-    } catch {}
-    router.push('/waitlist');
+      await joinWaitlistMutation.mutateAsync({ flightId: targetFlightId });
+      router.push('/waitlist');
+    } catch (err: unknown) {
+      console.error('[AEROLOCK_UI] POST /waitlist REJECTED BY SERVER:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`[WAITLIST_REJECTED_BY_BACKEND]: ${msg}`);
+    }
   };
 
   const handleSelectSeat = (seat: Seat) => {
