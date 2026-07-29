@@ -8,6 +8,7 @@ import {
   useDeclineSeat,
   useActiveWaitlist,
   Booking,
+  WaitlistEntry,
 } from '../../hooks/useWaitlist';
 
 /**
@@ -19,12 +20,15 @@ import {
  *   [ PAY_AND_CONFIRM ] -> useConfirmSeat
  *   [ DECLINE_OFFER ]   -> useDeclineSeat
  */
-function PromotedOfferBanner({ booking }: { booking: Booking }) {
+function PromotedOfferBanner({ booking, activeWaitlists }: { booking: Booking; activeWaitlists: WaitlistEntry[] }) {
   const confirmSeatMutation = useConfirmSeat();
   const declineSeatMutation = useDeclineSeat();
+  const leaveWaitlistMutation = useLeaveWaitlist();
   const hasAutoDeclinedRef = useRef(false);
 
   const bookingId = booking.id || booking.bookingId || 0;
+  const targetWaitlist = activeWaitlists.find((w) => w.flightId === booking.flightId) || activeWaitlists[0];
+  const waitlistId = targetWaitlist?.id;
 
   const calculateTimeRemaining = () => {
     const createdAtTime = new Date(booking.createdAt).getTime();
@@ -36,6 +40,28 @@ function PromotedOfferBanner({ booking }: { booking: Booking }) {
 
   const [secondsRemaining, setSecondsRemaining] = useState<number>(calculateTimeRemaining);
 
+  const handleConfirm = async () => {
+    try {
+      await confirmSeatMutation.mutateAsync({ bookingId });
+      if (waitlistId) {
+        await leaveWaitlistMutation.mutateAsync(waitlistId);
+      }
+    } catch (err: unknown) {
+      console.error('[AEROLOCK_UI] CONFIRM_SEAT_ERROR:', err);
+    }
+  };
+
+  const handleDecline = async () => {
+    try {
+      await declineSeatMutation.mutateAsync({ bookingId });
+      if (waitlistId) {
+        await leaveWaitlistMutation.mutateAsync(waitlistId);
+      }
+    } catch (err: unknown) {
+      console.error('[AEROLOCK_UI] DECLINE_SEAT_ERROR:', err);
+    }
+  };
+
   useEffect(() => {
     setSecondsRemaining(calculateTimeRemaining());
     hasAutoDeclinedRef.current = false;
@@ -46,7 +72,7 @@ function PromotedOfferBanner({ booking }: { booking: Booking }) {
 
       if (remaining <= 0 && !hasAutoDeclinedRef.current) {
         hasAutoDeclinedRef.current = true;
-        declineSeatMutation.mutate({ bookingId });
+        handleDecline();
       }
     }, 1000);
 
@@ -83,7 +109,7 @@ function PromotedOfferBanner({ booking }: { booking: Booking }) {
         <button
           type="button"
           disabled={confirmSeatMutation.isPending}
-          onClick={() => confirmSeatMutation.mutate({ bookingId })}
+          onClick={handleConfirm}
           className="flex-1 md:flex-none px-6 py-3 border border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff] font-mono text-xs font-bold tracking-widest uppercase hover:bg-[#00e5ff] hover:text-[#051424] transition-colors rounded-none disabled:opacity-50 cursor-pointer"
         >
           {confirmSeatMutation.isPending ? '[ PROCESSING... ]' : '[ PAY_AND_CONFIRM ]'}
@@ -91,7 +117,7 @@ function PromotedOfferBanner({ booking }: { booking: Booking }) {
         <button
           type="button"
           disabled={declineSeatMutation.isPending}
-          onClick={() => declineSeatMutation.mutate({ bookingId })}
+          onClick={handleDecline}
           className="flex-1 md:flex-none px-6 py-3 border border-[#ffb4ab] bg-[#ffb4ab]/10 text-[#ffb4ab] font-mono text-xs font-bold tracking-widest uppercase hover:bg-[#ffb4ab] hover:text-[#051424] transition-colors rounded-none disabled:opacity-50 cursor-pointer"
         >
           {declineSeatMutation.isPending ? '[ DECLINING... ]' : '[ DECLINE_OFFER ]'}
@@ -130,7 +156,9 @@ export default function WaitlistControlInterface() {
       </header>
 
       {/* 1. PROMOTED SEAT OFFER BANNER (Condition: LOCKED booking exists) */}
-      {lockedBooking && <PromotedOfferBanner booking={lockedBooking} />}
+      {lockedBooking && (
+        <PromotedOfferBanner booking={lockedBooking} activeWaitlists={activeWaitlists} />
+      )}
 
       {/* 2. CUSTOMER WAITLIST TABLE */}
       <section className="w-full space-y-4" id="waitlist-vectors">

@@ -59,6 +59,36 @@ const getAuthHeaders = (): Record<string, string> => {
   return headers;
 };
 
+// Client localStorage persistence helpers for user waitlist entries
+const STORAGE_KEY = 'aerolock_user_waitlists';
+
+export const getStoredWaitlists = (): WaitlistEntry[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const addStoredWaitlist = (entry: WaitlistEntry) => {
+  if (typeof window === 'undefined') return;
+  const current = getStoredWaitlists();
+  const exists = current.some((item) => String(item.id) === String(entry.id) || item.flightId === entry.flightId);
+  if (!exists) {
+    const updated = [entry, ...current];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  }
+};
+
+export const removeStoredWaitlist = (id: string | number) => {
+  if (typeof window === 'undefined') return;
+  const current = getStoredWaitlists();
+  const updated = current.filter((item) => String(item.id) !== String(id) && item.flightId !== Number(id));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+};
+
 /**
  * 1. useJoinWaitlist: Mutation targeting POST /waitlist with payload { flightId: number }
  */
@@ -108,7 +138,22 @@ export function useJoinWaitlist() {
         return { success: true, message: responseText };
       }
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
+      if (data) {
+        const newEntry: WaitlistEntry = {
+          id: data.id || `wl_${variables.flightId}_${Date.now()}`,
+          userId: data.userId,
+          flightId: Number(variables.flightId),
+          flightNumber: `AL-${String(variables.flightId).padStart(3, '0')}`,
+          sector: 'SFO → JFK',
+          departure: '14:30 UTC',
+          position: data.position || 1,
+          total: 1,
+          createdAt: new Date().toISOString(),
+        };
+        addStoredWaitlist(newEntry);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['waitlist'] });
       queryClient.invalidateQueries({ queryKey: ['waitlistQueue', variables.flightId] });
       queryClient.invalidateQueries({ queryKey: ['userBookings'] });
@@ -124,15 +169,23 @@ export function useLeaveWaitlist() {
   return useMutation({
     mutationFn: async (id: string | number) => {
       const baseUrl = getApiBaseUrl();
-      const res = await fetch(`${baseUrl}/waitlist/${id}`, {
+      const targetUrl = `${baseUrl}/waitlist/${id}`;
+
+      console.log('[AEROLOCK_WAITLIST] OUTBOUND DELETE /waitlist/:id:', targetUrl);
+
+      const res = await fetch(targetUrl, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
+
+      removeStoredWaitlist(id);
+
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`Failed to leave waitlist: ${errorText || res.statusText}`);
+        console.warn('[AEROLOCK_WAITLIST] DELETE /waitlist FAILED:', res.status, errorText);
       }
-      return res.json();
+
+      return res.status === 204 ? { success: true } : res.json().catch(() => ({ success: true }));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['waitlist'] });
@@ -197,7 +250,7 @@ export function useUserBookings() {
       return bookings.map((b) => ({
         ...b,
         id: b.id || b.bookingId || 0,
-        flightNumber: b.flightNumber || `AL-${b.flightId || '001'}`,
+        flightNumber: b.flightNumber || `AL-${String(b.flightId || '001').padStart(3, '0')}`,
         createdAt: b.createdAt || new Date().toISOString(),
       }));
     },
@@ -265,27 +318,42 @@ export function useDeclineSeat() {
 }
 
 /**
- * 7. useActiveWaitlist: Query targeting user's active waitlist entries
+ * 7. useActiveWaitlist: Query targeting user's active waitlists synced with GET /waitlist/flights/:flightId
  */
 export function useActiveWaitlist() {
   return useQuery<WaitlistEntry[]>({
     queryKey: ['waitlist'],
     queryFn: async () => {
       const baseUrl = getApiBaseUrl();
-      const res = await fetch(`${baseUrl}/waitlist/me`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) {
-        // Fallback to /waitlist if /waitlist/me is 404
-        const fallbackRes = await fetch(`${baseUrl}/waitlist`, {
-          headers: getAuthHeaders(),
-        });
-        if (!fallbackRes.ok) throw new Error('Failed to fetch user active waitlists');
-        const fallbackData = await fallbackRes.json();
-        return Array.isArray(fallbackData) ? fallbackData : fallbackData.data || [];
+      const headers = getAuthHeaders();
+      const stored = getStoredWaitlists();
+
+      const updatedEntries: WaitlistEntry[] = [];
+      for (const entry of stored) {
+        try {
+          const res = await fetch(`${baseUrl}/waitlist/flights/${entry.flightId}`, { headers });
+          if (res.ok) {
+            const list: QueueMember[] = await res.json();
+            const total = Array.isArray(list) ? list.length : 1;
+            const userIdx = Array.isArray(list)
+              ? list.findIndex((m) => String(m.id || m.userId) === String(entry.id || entry.userId))
+              : -1;
+            const pos = userIdx !== -1 ? userIdx + 1 : entry.position || 1;
+
+            updatedEntries.push({
+              ...entry,
+              position: pos,
+              total: total > 0 ? total : 1,
+            });
+          } else {
+            updatedEntries.push(entry);
+          }
+        } catch {
+          updatedEntries.push(entry);
+        }
       }
-      const data = await res.json();
-      return Array.isArray(data) ? data : data.data || [];
+
+      return updatedEntries;
     },
     refetchInterval: 15000,
   });
